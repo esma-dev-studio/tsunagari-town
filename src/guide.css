@@ -1,0 +1,189 @@
+/* 小学2年生向けの視線ガイド。既存の図鑑デザインに重ねる。 */
+.task-guide {
+  width: min(920px, calc(100% - 32px));
+  min-height: 88px;
+  margin: 18px auto 0;
+  padding: 11px 18px;
+  display: grid;
+  grid-template-columns: 56px 58px 1fr;
+  align-items: center;
+  gap: 13px;
+  background: #fff7d9;
+  border: 3px solid #edc85d;
+  box-shadow: 0 5px 0 rgba(211, 171, 57, .18);
+}
+
+.task-guide-number {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #d9854f;
+  color: white;
+  font: 800 1.45rem 'Yu Gothic UI', system-ui, sans-serif;
+}
+
+.task-guide-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: #17324d;
+  background: white;
+  border: 2px solid #eadcaa;
+}
+
+.task-guide-icon svg { width: 29px; height: 29px; }
+.task-guide-copy { display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 13px; }
+.task-guide-copy small { color: #9f5b36; font-weight: 800; font-size: .76rem; }
+.task-guide-copy strong { font-size: 1.3rem; line-height: 1.35; }
+.task-guide-copy b { grid-column: 1 / -1; margin-top: 3px; color: #657383; font-size: .83rem; }
+
+.opening-copy { padding-top: clamp(28px, 5vw, 68px); padding-bottom: clamp(30px, 5vw, 65px); }
+.opening-brand { margin-bottom: 18px; }
+.opening-guide { width: min(470px, 100%); display: grid; grid-template-columns: 104px 1fr; align-items: end; margin: 0 0 19px; }
+.guide-character { width: 104px; height: 128px; align-self: end; }
+.guide-speech { position: relative; background: white; border: 3px solid #3f78a8; padding: 13px 16px; text-align: left; box-shadow: 5px 5px 0 #dce6e9; }
+.guide-speech::before { content: ''; position: absolute; left: -16px; bottom: 25px; width: 24px; height: 24px; background: white; border-left: 3px solid #3f78a8; border-bottom: 3px solid #3f78a8; transform: rotate(45deg); }
+.guide-speech small, .guide-speech strong { position: relative; z-index: 1; display: block; }
+.guide-speech small { color: #607386; font-size: .67rem; font-weight: 700; margin-bottom: 5px; }
+.guide-speech strong { color: #17324d; font-size: 1.06rem; line-height: 1.55; }
+.opening-copy h1 { font-size: clamp(2.7rem, 4.5vw, 4.35rem); margin-bottom: 12px; }
+.opening-lead { margin-bottom: 12px; font-size: 1.02rem; }
+
+.child-journey {
+  width: min(530px, 100%);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 11px;
+}
+
+.child-journey li {
+  min-width: 0;
+  min-height: 112px;
+  padding: 12px 8px 10px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #fffef9;
+  border: 2px solid #c9d3cf;
+}
+
+.child-journey li > span { position: absolute; left: 7px; top: 6px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: #17324d; color: white; font-weight: 800; font-size: .72rem; }
+.child-journey i { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: #e4edf1; color: #3f78a8; font-style: normal; margin-bottom: 4px; }
+.child-journey i svg { width: 22px; }
+.child-journey strong { font-size: .92rem; }
+.child-journey small { margin-top: 3px; color: #607386; font-size: .64rem; line-height: 1.35; }
+.journey-arrow { position: absolute; width: 24px; height: 24px; right: -18px; top: 42px; color: #d9854f; z-index: 2; background: #f6f2e7; border-radius: 50%; }
+.opening-actions { margin-top: 18px; }
+.home-journey { width: 100%; margin-top: 22px; padding: 18px; background: #f3efe3; border: 1px solid #ddd7c8; }
+.home-journey .child-journey { width: 100%; }
+
+.map-topline h1 { font-size: clamp(1.9rem, 4vw, 3rem); }
+.map-topline .button:disabled { color: #76838b; background: #d8dddc; box-shadow: none; opacity: 1; }
+.facility-panel { display: flex; flex-direction: column; }
+.facility-panel.has-problem { border-top-color: #d9854f; }
+.tap-hint { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 25px 8px; }
+.tap-hint > span { width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; background: #fff0cf; color: #d9854f; animation: hint-bounce 1.3s ease-in-out infinite; }
+.tap-hint svg { width: 44px; }
+.tap-hint strong { margin-top: 20px; font-size: 1.25rem; line-height: 1.6; }
+.tap-hint p { margin: 7px 0 0; color: #607386; font-size: .85rem; }
+@keyframes hint-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+.found-problem { padding: 22px; margin: -25px -25px 18px; background: #fff1c7; border-bottom: 2px solid #e7c16a; }
+.found-problem > span { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; background: #527b63; color: white; font-size: .78rem; font-weight: 800; }
+.found-problem > span svg { width: 17px; }
+.found-problem h2 { font-size: 1.55rem; margin: 13px 0 7px; }
+.found-problem p { margin: 0; color: #5b6c72; font-size: .86rem; line-height: 1.6; }
+.not-here { min-height: 170px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; color: #607386; }
+.not-here svg { width: 36px; }
+.facility-details { margin-top: auto; border: 1px solid #d5dcd8; background: #fff; }
+.facility-details summary { min-height: 50px; padding: 13px 15px; cursor: pointer; font-weight: 800; }
+.facility-details dl { padding: 0 15px 15px; gap: 10px; }
+.facility-details dl div { padding-top: 9px; }
+
+.problem-grid .problem-card { padding: 18px; min-height: 400px; align-items: stretch; }
+.problem-grid .problem-card::before { display: none; }
+.problem-number { position: absolute; left: 12px; top: 12px; z-index: 2; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: #17324d; color: white; font-size: 1rem; font-weight: 800; }
+.problem-grid .problem-picture { width: 100%; height: 154px; flex: none; position: relative; overflow: hidden; background: color-mix(in srgb, var(--picture-color) 17%, #f5f1e5); border-bottom: 5px solid var(--picture-color); margin-bottom: 17px; }
+.problem-ground { position: absolute; width: 170px; height: 42px; border-radius: 50%; background: #d7dbc9; left: 50%; bottom: 14px; transform: translateX(-50%); }
+.problem-work-icon { position: absolute; right: 31px; bottom: 29px; z-index: 2; width: 70px; height: 70px; border-radius: 50%; display: grid; place-items: center; background: var(--picture-color); color: white; box-shadow: 0 5px 0 rgba(23,50,77,.13); }
+.problem-work-icon svg { width: 38px; }
+.problem-person { position: absolute; left: 52px; bottom: 36px; z-index: 2; width: 39px; height: 57px; border-radius: 18px 18px 8px 8px; background: #3f78a8; }
+.problem-person::before { content: ''; position: absolute; width: 32px; height: 32px; border-radius: 50%; background: #b8795c; left: 3px; top: -26px; }
+.problem-person::after { content: ''; position: absolute; width: 50px; height: 9px; border-radius: 6px; background: #3f78a8; left: -7px; top: 16px; transform: rotate(-9deg); }
+.problem-person i { position: absolute; width: 34px; height: 19px; border-radius: 50% 50% 35% 35%; background: #263f52; left: 2px; top: -29px; z-index: 2; }
+.problem-signal { position: absolute; left: 92px; top: 21px; width: 45px; height: 45px; border-radius: 50%; display: grid; place-items: center; background: #fff; border: 3px solid #d9854f; color: #d9854f; font-size: 1.5rem; box-shadow: 3px 3px 0 rgba(23,50,77,.1); }
+.problem-place { margin: 0 0 7px; }
+.problem-card > strong { font-size: 1.35rem; }
+.problem-card .card-link { min-height: 46px; justify-content: center; background: #17324d; color: white; padding: 10px 12px; }
+
+.mission-steps { list-style: none; padding: 0; margin: -8px 0 28px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.mission-steps li { min-height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; background: #f3f1e9; border-bottom: 3px solid #d7d2c4; font-size: .82rem; }
+.pairing-game .pairing-arrow { pointer-events: none; }
+.mission-steps span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: #d9854f; color: white; font-weight: 800; }
+
+@media (max-width: 1000px) {
+  .opening-guide { margin-left: auto; margin-right: auto; }
+  .opening-copy h1 { font-size: 3.2rem; }
+  .opening-map { min-height: 370px; }
+  .home-journey .child-journey { margin: 0 auto; }
+  .task-guide { margin-top: 12px; }
+}
+
+@media (max-width: 760px) {
+  .task-guide { width: calc(100% - 20px); min-height: 78px; grid-template-columns: 44px 1fr; gap: 10px; padding: 9px 12px; margin-top: 10px; }
+  .task-guide-number { width: 42px; height: 42px; font-size: 1.1rem; }
+  .task-guide-icon { display: none; }
+  .task-guide-copy { display: block; }
+  .task-guide-copy small { display: block; margin-bottom: 2px; }
+  .task-guide-copy strong { display: block; font-size: 1.08rem; }
+  .task-guide-copy b { display: block; font-size: .72rem; margin-top: 2px; }
+  .opening-copy { padding-top: 28px; }
+  .opening-brand { flex-direction: row; margin-bottom: 12px; }
+  .opening-guide { grid-template-columns: 84px 1fr; }
+  .guide-character { width: 84px; height: 104px; }
+  .guide-speech { padding: 10px 12px; }
+  .guide-speech strong { font-size: .92rem; }
+  .opening-copy h1 { font-size: 2.75rem; }
+  .opening-lead { margin-bottom: 8px; }
+  .child-journey { gap: 6px; }
+  .child-journey li { min-height: 103px; padding: 10px 4px 8px; }
+  .child-journey strong { font-size: .79rem; }
+  .child-journey small { font-size: .57rem; }
+  .journey-arrow { width: 19px; right: -13px; }
+  .opening-map { min-height: 300px; }
+  .map-workspace { display: flex; flex-direction: column; }
+  .facility-panel { order: -1; min-height: 190px; }
+  .tap-hint { min-height: 160px; }
+  .problem-card { min-height: 360px; }
+  .problem-picture { height: 135px; }
+  .mission-steps { margin-top: -10px; }
+  .pairing-game .pairing-arrow { width: 100%; height: 32px; }
+  .mission-steps li { flex-direction: column; gap: 3px; font-size: .72rem; }
+}
+
+@media (max-width: 430px) {
+  .opening-guide { grid-template-columns: 70px 1fr; }
+  .guide-character { width: 70px; height: 90px; }
+  .guide-speech small { display: none; }
+  .guide-speech strong { font-size: .82rem; }
+  .opening-copy h1 { font-size: 2.35rem; }
+  .child-journey i { width: 32px; height: 32px; }
+  .child-journey i svg { width: 19px; }
+  .child-journey small { display: none; }
+  .child-journey li { min-height: 84px; }
+  .home-journey { padding: 10px; }
+  .task-guide-copy strong { font-size: .98rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tap-hint > span { animation: none; }
+}

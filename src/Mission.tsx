@@ -191,7 +191,8 @@ export function Mission({ job, onComplete }: { job: Job; onComplete: () => void 
         <div className="tool-note"><Icon name="tools" /><span><strong>使う道具</strong>{tools}</span></div>
       </aside>
       <section className="mission-console" aria-label={`${job.name}のミッション`}>
-        <div className="console-heading"><span>ミッション</span><strong>よく見て、やってみよう</strong></div>
+        <div className="console-heading"><span>しごと ミッション</span><strong>3つの じゅんばんで やってみよう</strong></div>
+        <ol className="mission-steps" aria-label="ミッションの進め方"><li><span>1</span><b>みほんを 見る</b></li><li><span>2</span><b>タップする</b></li><li><span>3</span><b>たしかめる</b></li></ol>
         <MissionGame key={job.id} jobId={job.id} onDone={onComplete} />
       </section>
     </div>

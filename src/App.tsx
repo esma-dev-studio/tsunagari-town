@@ -12,6 +12,7 @@ import {
   unexpectedEvents,
 } from './data'
 import { Icon, type IconName } from './Icon'
+import { ChildJourney, GuideCharacter, ProblemPicture, TaskGuide } from './Guide'
 import { MapScene, facilities } from './MapScene'
 import { Mission } from './Mission'
 import type { GameState, Job, JobId, Screen, SpendingRecord } from './types'
@@ -66,6 +67,7 @@ function AppHeader({ screen, state, onHome, onMap, onBack }: { screen: Screen; s
         <ol>{stages.map((stage, index) => <li key={stage.label} className={index < stageIndex ? 'is-done' : index === stageIndex ? 'is-current' : ''}><span>{index < stageIndex ? <Icon name="check" /> : index + 1}</span><b>{stage.label}</b></li>)}</ol>
       </div>}
       <div className="mobile-progress" style={{ '--progress': `${Math.max(0, ((stageIndex + 1) / stages.length) * 100)}%` } as React.CSSProperties}><span>{stageIndex >= 0 ? stages[stageIndex].label : title}</span><b>{state.week}週目</b></div>
+      <TaskGuide screen={screen} />
     </>
   )
 }
@@ -75,14 +77,19 @@ function Opening({ hasProgress, onStart, onContinue }: { hasProgress: boolean; o
     <main className="opening-screen">
       <div className="opening-copy">
         <div className="opening-brand"><span className="brand-mark large"><Icon name="community" /></span><span>つながりタウンへ ようこそ</span></div>
-        <p className="eyebrow">仕事をすると、街のお金はどう動く？</p>
-        <h1>お金と仕事の街</h1>
-        <p className="opening-lead">仕事をして、お金を使って、<br />街の一週間を動かしてみよう。</p>
+        <div className="opening-guide">
+          <GuideCharacter />
+          <div className="guide-speech"><small>まちの あんない人「つなぐ」</small><strong>こまっている人を<br />いっしょに たすけよう！</strong></div>
+        </div>
+        <p className="eyebrow">見て、タップして、まちを うごかそう</p>
+        <h1>お金と しごとの まち</h1>
+        <p className="opening-lead">やることは、3つだけ。</p>
+        <ChildJourney />
         <div className="opening-actions">
           {hasProgress && <button type="button" className="button button-primary button-large" onClick={onContinue}>つづきから<Icon name="arrow" /></button>}
-          <button type="button" className={`button ${hasProgress ? 'button-secondary' : 'button-primary'} button-large`} onClick={onStart}>{hasProgress ? '新しい一週間' : '街へ出発'}<Icon name="play" /></button>
+          <button type="button" className={`button ${hasProgress ? 'button-secondary' : 'button-primary'} button-large`} onClick={onStart}>{hasProgress ? 'はじめから' : 'やってみる'}<Icon name="play" /></button>
         </div>
-        <p className="fiction-note"><Icon name="info" />この街のお金や給料は、学ぶための架空の数です。</p>
+        <p className="fiction-note"><Icon name="info" />この まちの お金は、べんきょう用の 数だよ。</p>
       </div>
       <div className="opening-map" aria-hidden="true"><MapScene compact /><div className="map-float-card"><Icon name="briefcase" /><span><strong>6つの仕事</strong>だれを助ける？</span></div><div className="map-float-card second"><Icon name="coin" /><span><strong>お金の旅</strong>どこへ行く？</span></div></div>
     </main>
@@ -92,11 +99,12 @@ function Opening({ hasProgress, onStart, onContinue }: { hasProgress: boolean; o
 function Home({ state, onStart, onContinue, onNavigate, onReset }: { state: GameState; onStart: () => void; onContinue: () => void; onNavigate: (screen: Screen) => void; onReset: () => void }) {
   return <main className="page-shell home-page">
     <section className="home-hero">
-      <div><span className="eyebrow">街の1週間を体験しよう</span><h1>{state.weekComplete ? `${state.week}週目、おつかれさま！` : '今日は、だれを助ける？'}</h1><p>仕事、お金、街のサービス。えらんだことが、いろいろな人につながります。</p>
+      <div><span className="eyebrow">まちの 1しゅうかんを やってみよう</span><h1>{state.weekComplete ? `${state.week}週目、おつかれさま！` : 'きょうは、だれを たすける？'}</h1><p>こまっている人を 見つけて、しごとで たすけよう。</p>
         <div className="action-row">{state.hasStarted && !state.weekComplete && <button type="button" className="button button-primary" onClick={onContinue}>つづきから<Icon name="arrow" /></button>}<button type="button" className="button button-secondary" onClick={onStart}>{state.weekComplete ? '次の一週間へ' : 'はじめから'}<Icon name="play" /></button></div>
       </div>
       <div className="week-card"><span>これまでの仕事カード</span><strong>{state.earnedJobCards.length}<small> / 6</small></strong><div className="mini-job-row">{jobs.map((job) => <span key={job.id} className={state.earnedJobCards.includes(job.id) ? 'is-earned' : ''} style={{ '--job-color': job.color } as React.CSSProperties}>{job.shortName.slice(0, 1)}</span>)}</div><small>点数ではなく、体験のきろくだよ。</small></div>
     </section>
+    <div className="home-journey"><ChildJourney /></div>
     <section className="home-menu" aria-label="メニュー">
       <button type="button" onClick={() => onNavigate('map')}><span className="menu-icon blue"><Icon name="map" /></span><span><strong>街の地図</strong><small>建物と仕事のつながりを見る</small></span><Icon name="arrow" /></button>
       <button type="button" onClick={() => onNavigate('encyclopedia')}><span className="menu-icon orange"><Icon name="book" /></span><span><strong>仕事図鑑</strong><small>6つの仕事を体験できる</small></span><Icon name="arrow" /></button>
@@ -107,20 +115,38 @@ function Home({ state, onStart, onContinue, onNavigate, onReset }: { state: Game
 }
 
 function TownMapPage({ state, onProblem }: { state: GameState; onProblem: () => void }) {
-  const [selectedFacility, setSelectedFacility] = useState(facilities.find((item) => item.id === 'bakery')!)
-  const affectedIds = problems.filter((problem) => state.activeProblemIds.includes(problem.id)).flatMap((problem) => problem.affectedFacilities)
+  const activeProblems = problems.filter((problem) => state.activeProblemIds.includes(problem.id))
+  const [selectedFacility, setSelectedFacility] = useState<(typeof facilities)[number] | null>(null)
+  const [foundProblemIds, setFoundProblemIds] = useState<string[]>([])
+  const affectedIds = activeProblems.flatMap((problem) => problem.affectedFacilities)
+  const foundProblem = selectedFacility ? activeProblems.find((problem) => problem.affectedFacilities.includes(selectedFacility.id)) : undefined
+  const selectFacility = (id: string) => {
+    const facility = facilities.find((item) => item.id === id) ?? null
+    setSelectedFacility(facility)
+    const found = activeProblems.filter((problem) => problem.affectedFacilities.includes(id)).map((problem) => problem.id)
+    setFoundProblemIds((current) => [...new Set([...current, ...found])])
+  }
   return <main className="map-page">
-    <div className="map-topline"><div><span className="eyebrow">STEP 1</span><h1>街を見てみよう</h1><p>光っている場所に、3つの困りごとがあります。</p></div><button type="button" className="button button-primary" onClick={onProblem}>困りごとを見つけた<Icon name="arrow" /></button></div>
-    <div className="map-workspace"><div className="map-frame"><MapScene highlightedIds={affectedIds} onSelect={(id) => setSelectedFacility(facilities.find((item) => item.id === id) ?? facilities[0])} /></div>
-      <aside className="facility-panel" aria-live="polite"><div className="panel-kicker"><Icon name="shop" />建物メモ</div><h2>{selectedFacility.name}</h2><dl><div><dt>ここで働く人</dt><dd>{selectedFacility.workers}</dd></div><div><dt>だれの役に立つ？</dt><dd>{selectedFacility.helps}</dd></div><div><dt>お金はどこから？</dt><dd>{selectedFacility.income}</dd></div><div><dt>何に使う？</dt><dd>{selectedFacility.spending}</dd></div></dl></aside>
+    <div className="map-topline"><div><span className="eyebrow">STEP 1</span><h1>オレンジの まるは どこ？</h1><p>ひかっている ばしょを 1つ タップしよう。</p></div><button type="button" className="button button-primary" disabled={foundProblemIds.length === 0} onClick={onProblem}>{foundProblemIds.length ? `${foundProblemIds.length}こ 見つけた！ えらぶ` : 'まず まるを タップ'}<Icon name="arrow" /></button></div>
+    <div className="map-workspace"><div className="map-frame"><MapScene highlightedIds={affectedIds} onSelect={selectFacility} /></div>
+      <aside className={`facility-panel ${foundProblem ? 'has-problem' : ''}`} aria-live="polite">
+        {!selectedFacility && <div className="tap-hint"><span><Icon name="map" /></span><strong>オレンジの まるを<br />タップしてね</strong><p>こまりごとが 見つかるよ。</p></div>}
+        {selectedFacility && <>
+          {foundProblem && <div className="found-problem"><span><Icon name="check" />みつけた！</span><h2>{foundProblem.title}</h2><p>{foundProblem.description}</p></div>}
+          {!foundProblem && <div className="not-here"><Icon name="info" /><strong>ここには ないみたい。<br />ほかの まるを さがそう！</strong></div>}
+          <details className="facility-details"><summary>{selectedFacility.name}の しごとを見る</summary><dl><div><dt>はたらく人</dt><dd>{selectedFacility.workers}</dd></div><div><dt>たすける人</dt><dd>{selectedFacility.helps}</dd></div><div><dt>お金はどこから？</dt><dd>{selectedFacility.income}</dd></div></dl></details>
+        </>}
+      </aside>
     </div>
   </main>
 }
 
 function ProblemPage({ state, onSelect }: { state: GameState; onSelect: (id: string) => void }) {
   const active = problems.filter((problem) => state.activeProblemIds.includes(problem.id))
-  return <main className="page-shell"><section className="page-intro"><span className="eyebrow">STEP 1</span><h1>どの困りごとを助ける？</h1><p>どれをえらんでも大丈夫。ほかの仕事も街を支えています。</p></section>
-    <div className="problem-grid">{active.map((problem, index) => <button type="button" className="problem-card" key={problem.id} onClick={() => onSelect(problem.id)}><span className="problem-number">0{index + 1}</span><span className="problem-place">{problem.affectedFacilities.map((id) => facilities.find((facility) => facility.id === id)?.name).filter(Boolean).join('・')}</span><strong>{problem.title}</strong><p>{problem.description}</p><span className="card-link">この困りごとを助ける<Icon name="arrow" /></span></button>)}</div>
+  return <main className="page-shell"><section className="page-intro"><span className="eyebrow">STEP 2</span><h1>どれを たすける？</h1><p>気になる えを 1つ タップしてね。</p></section>
+    <div className="problem-grid">{active.map((problem, index) => <button type="button" className="problem-card" key={problem.id} onClick={() => onSelect(problem.id)}>
+      <span className="problem-number">{index + 1}</span><ProblemPicture jobId={problem.relatedJobs[0]} /><span className="problem-place">{problem.affectedFacilities.map((id) => facilities.find((facility) => facility.id === id)?.name).filter(Boolean).join('・')}</span><strong>{problem.title}</strong><p>{problem.description}</p><span className="card-link">これを たすける<Icon name="arrow" /></span>
+    </button>)}</div>
   </main>
 }
 
@@ -131,10 +157,10 @@ function JobPage({ selectedProblemId, selectedJobId, onSelectJob, onStart }: { s
   const [showAll, setShowAll] = useState(false)
   const job = selectedJobId ? jobById(selectedJobId) : suggested
   if (!job) return null
-  return <main className="page-shell job-page"><section className="page-intro compact"><span className="eyebrow">STEP 2</span><h1>この仕事は、だれを助けると思う？</h1><p>考えに一つだけの正解はありません。まず予想しよう。</p></section>
-    <div className="thought-row" role="group" aria-label="だれを助けるか予想する">{['近くにいる人', '街のお店や仕事', '街でくらすみんな'].map((label) => <button type="button" key={label} className={thought === label ? 'is-selected' : ''} onClick={() => setThought(label)}>{thought === label && <Icon name="check" />}{label}</button>)}</div>
+  return <main className="page-shell job-page"><section className="page-intro compact"><span className="eyebrow">STEP 3</span><h1>だれを たすける しごと？</h1><p>おもった ボタンを 1つ タップしてね。</p></section>
+    <div className="thought-row" role="group" aria-label="だれを助けるか予想する">{['おきゃくさん', 'ほかの しごと', 'まちの みんな'].map((label) => <button type="button" key={label} className={thought === label ? 'is-selected' : ''} onClick={() => setThought(label)}>{thought === label && <Icon name="check" />}{label}</button>)}</div>
     {thought && <section className="job-feature" style={{ '--job-color': job.color } as React.CSSProperties}><div className="job-feature-main"><span className="job-chip">今日の仕事</span><h2>{job.name}</h2><p>{job.description}</p><div className="job-facts"><div><span>助ける人</span><strong>{job.helpsWhom}</strong></div><div><span>つながる仕事</span><strong>{job.relatedJobs.join('・')}</strong></div></div></div><div className="job-feature-side"><JobSymbol job={job} /><div><span>仕事でもらう</span><strong>{job.reward}<small>コイン</small></strong><p>仕事の大切さの順位ではないよ。</p></div></div><div className="job-question"><Icon name="info" /><span>{job.question}</span></div></section>}
-    <div className="job-actions">{thought && <button type="button" className="button button-primary button-large" onClick={onStart}>この仕事をやってみる<Icon name="arrow" /></button>}<button type="button" className="text-button" onClick={() => setShowAll(!showAll)}>{showAll ? '仕事の一覧をとじる' : 'ほかの仕事も見る'}</button></div>
+    <div className="job-actions">{thought && <button type="button" className="button button-primary button-large" onClick={onStart}>この しごとを やってみる<Icon name="arrow" /></button>}<button type="button" className="text-button" onClick={() => setShowAll(!showAll)}>{showAll ? 'しごとの いちらんを とじる' : 'ほかの しごとも 見る'}</button></div>
     {showAll && <div className="job-picker">{jobs.map((item) => <button type="button" key={item.id} className={item.id === job.id ? 'is-selected' : ''} onClick={() => { onSelectJob(item.id); setThought(null); setShowAll(false) }}><span style={{ background: item.color }}><JobMiniIcon id={item.id} /></span><strong>{item.shortName}</strong></button>)}</div>}
   </main>
 }
