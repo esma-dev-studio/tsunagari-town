@@ -1,15 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from './Icon'
 import type { Job, JobId } from './types'
+import { WorkDelivery, WorkPhaseBar, WorkPreparation, type WorkPhase } from './WorkShift'
+import './workShift.css'
 
-function MissionArt({ jobId }: { jobId: JobId }) {
+function MissionArt({ jobId, jobLabel }: { jobId: JobId; jobLabel: string }) {
   const colors: Record<JobId, string> = {
     bakery: '#d9854f', bus: '#3f78a8', nurse: '#4b8c7a',
     waste: '#527b53', farmer: '#718b3c', library: '#76679a',
   }
   const color = colors[jobId]
   return (
-    <svg className="mission-art" viewBox="0 0 420 220" role="img" aria-label={`${jobId}の仕事道具のイラスト`}>
+    <svg className="mission-art" viewBox="0 0 420 220" role="img" aria-label={`${jobLabel}の仕事道具のイラスト`}>
       <rect width="420" height="220" fill="#f4efe1" />
       <ellipse cx="210" cy="191" rx="150" ry="22" fill="#d9d5c8" />
       {jobId === 'bakery' && <>
@@ -68,6 +70,7 @@ function PairingGame({ items, targets, prompt, onComplete }: { items: PairingIte
   const [matched, setMatched] = useState<Record<string, string>>({})
   const [message, setMessage] = useState(prompt)
   const current = items.find((item) => item.id === active)
+  const usedTargets = Object.values(matched)
 
   const match = (targetId: string) => {
     if (!current) return
@@ -79,7 +82,7 @@ function PairingGame({ items, targets, prompt, onComplete }: { items: PairingIte
       if (remaining) setActive(remaining.id)
       if (Object.keys(next).length === items.length) onComplete()
     } else {
-      setMessage('ちがう場所かも。話をもう一度たしかめよう。')
+      setMessage('ちがう ばしょかも。ことばを もう一度 見てみよう。')
     }
   }
 
@@ -94,7 +97,7 @@ function PairingGame({ items, targets, prompt, onComplete }: { items: PairingIte
       </div>
       <div className="pairing-arrow"><Icon name="arrow" /></div>
       <div className="pairing-column" aria-label="行き先">
-        {targets.map((target) => <button key={target.id} type="button" className="pairing-target" onClick={() => match(target.id)}>{target.label}</button>)}
+        {targets.map((target) => <button key={target.id} type="button" className={`pairing-target ${usedTargets.includes(target.id) ? 'is-done' : ''}`} disabled={usedTargets.includes(target.id)} onClick={() => match(target.id)}>{usedTargets.includes(target.id) && <Icon name="check" />}{target.label}</button>)}
       </div>
       <p className="game-message" aria-live="polite">{message}</p>
     </div>
@@ -126,11 +129,12 @@ function FarmerMission({ onDone }: { onDone: () => void }) {
 function CheckAction({ correct, onDone, hint }: { correct: boolean; onDone: () => void; hint: string }) {
   const [checked, setChecked] = useState(false)
   useEffect(() => { if (!correct) setChecked(false) }, [correct])
+  const message = checked && correct ? 'ぴったり！ 数と しゅるいを たしかめられたね。' : checked ? '数が ちがうよ。ちゅうもんと もう一度 見くらべよう。' : hint
   return <div className={`check-action ${checked && correct ? 'is-correct' : ''}`}>
-    <p aria-live="polite">{checked && correct ? 'ぴったり！ 数としゅるいをたしかめられたね。' : hint}</p>
+    <p aria-live="polite">{message}</p>
     {!checked || !correct
       ? <button type="button" className="button button-secondary" onClick={() => setChecked(true)}><Icon name="check" />数をたしかめる</button>
-      : <button type="button" className="button button-primary" onClick={onDone}>仕事を終える<Icon name="arrow" /></button>}
+      : <button type="button" className="button button-primary" onClick={onDone}>作業が できた！ つぎへ<Icon name="arrow" /></button>}
   </div>
 }
 
@@ -157,43 +161,57 @@ function BusMission({ onDone }: { onDone: () => void }) {
 function MissionGame({ jobId, onDone }: { jobId: JobId; onDone: () => void }) {
   const [completed, setCompleted] = useState(false)
   const done = () => setCompleted(true)
-  if (completed) return <div className="mission-success"><div className="success-mark"><Icon name="check" /></div><h3>仕事ができたよ</h3><p>ていねいにたしかめたことが、街の人の助けになりました。</p><button type="button" className="button button-primary" onClick={onDone}>仕事を終える<Icon name="arrow" /></button></div>
+  if (completed) return <div className="mission-success"><div className="success-mark"><Icon name="check" /></div><h3>作業が できたよ</h3><p>つぎは、この仕事が だれに とどくか 見てみよう。</p><button type="button" className="button button-primary" onClick={onDone}>つぎへ：とどける<Icon name="arrow" /></button></div>
 
-  if (jobId === 'bakery') return <BakeryMission onDone={onDone} />
+  if (jobId === 'bakery') return <BakeryMission onDone={done} />
   if (jobId === 'bus') return <BusMission onDone={done} />
-  if (jobId === 'farmer') return <FarmerMission onDone={onDone} />
+  if (jobId === 'farmer') return <FarmerMission onDone={done} />
   if (jobId === 'nurse') return <PairingGame onComplete={done} prompt="一人ずつ話を聞いて、合う場所をタップしよう。" items={[
-    { id: 'a', label: '受付がまだの人', answer: 'reception' },
+    { id: 'a', label: 'うけつけが まだの人', answer: 'reception' },
     { id: 'b', label: '歩くのがつらい人', answer: 'rest' },
-    { id: 'c', label: '薬の受け取りを聞く人', answer: 'medicine' },
-  ]} targets={[{ id: 'rest', label: 'いすで休める場所' }, { id: 'reception', label: '受付' }, { id: 'medicine', label: '薬の案内' }]} />
-  if (jobId === 'waste') return <PairingGame onComplete={done} prompt="物を1つえらび、合う集め場所をタップしよう。" items={[
+    { id: 'c', label: 'くすりの うけとりを聞く人', answer: 'medicine' },
+  ]} targets={[{ id: 'rest', label: 'いすで休める ばしょ' }, { id: 'reception', label: 'うけつけ' }, { id: 'medicine', label: 'くすりの あんない' }]} />
+  if (jobId === 'waste') return <PairingGame onComplete={done} prompt="ごみを1つえらび、合う分ける ばしょをタップしよう。" items={[
     { id: 'a', label: 'おかしの紙ぶくろ', answer: 'burn' },
     { id: 'b', label: 'あきかん', answer: 'resource' },
     { id: 'c', label: 'われた電池', answer: 'danger' },
-  ]} targets={[{ id: 'resource', label: '資源' }, { id: 'danger', label: '危険物' }, { id: 'burn', label: '燃やすごみ' }]} />
+  ]} targets={[{ id: 'resource', label: 'しげん（また つかう）' }, { id: 'danger', label: 'あぶない ごみ' }, { id: 'burn', label: 'もやす ごみ' }]} />
   return <PairingGame onComplete={done} prompt="さがす人を1人えらび、本だなをタップしよう。" items={[
     { id: 'a', label: '星を調べたい', answer: 'science' },
     { id: 'b', label: 'むかし話を読みたい', answer: 'story' },
     { id: 'c', label: '料理を作りたい', answer: 'life' },
-  ]} targets={[{ id: 'story', label: '物語' }, { id: 'science', label: 'しぜん・科学' }, { id: 'life', label: 'くらし・料理' }]} />
+  ]} targets={[{ id: 'story', label: 'ものがたり' }, { id: 'science', label: 'しぜん・かがく' }, { id: 'life', label: 'くらし・りょうり' }]} />
 }
 
 export function Mission({ job, onComplete }: { job: Job; onComplete: () => void }) {
   const tools = useMemo(() => job.tools.join('・'), [job.tools])
+  const [phase, setPhase] = useState<WorkPhase>('prepare')
+  const consoleRef = useRef<HTMLElement>(null)
+  const previousPhase = useRef<WorkPhase>(phase)
+  useEffect(() => {
+    if (previousPhase.current !== phase) {
+      consoleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      consoleRef.current?.focus({ preventScroll: true })
+      previousPhase.current = phase
+    }
+  }, [phase])
   return (
     <div className="mission-layout">
       <aside className="mission-brief">
         <span className="eyebrow">今日の仕事</span>
         <h2>{job.name}</h2>
         <p>{job.mission}</p>
-        <MissionArt jobId={job.id} />
+        <MissionArt jobId={job.id} jobLabel={job.shortName} />
         <div className="tool-note"><Icon name="tools" /><span><strong>使う道具</strong>{tools}</span></div>
       </aside>
-      <section className="mission-console" aria-label={`${job.name}のミッション`}>
-        <div className="console-heading"><span>しごと ミッション</span><strong>3つの じゅんばんで やってみよう</strong></div>
-        <ol className="mission-steps" aria-label="ミッションの進め方"><li><span>1</span><b>みほんを 見る</b></li><li><span>2</span><b>タップする</b></li><li><span>3</span><b>たしかめる</b></li></ol>
-        <MissionGame key={job.id} jobId={job.id} onDone={onComplete} />
+      <section ref={consoleRef} tabIndex={-1} className="mission-console" aria-label={`${job.name}のミッション`}>
+        <WorkPhaseBar phase={phase} />
+        {phase === 'prepare' && <WorkPreparation job={job} onReady={() => setPhase('work')} />}
+        {phase === 'work' && <>
+          <div className="console-heading"><span>しごと ミッション</span><strong>じゅんびした 道具で やってみよう</strong></div>
+          <MissionGame key={job.id} jobId={job.id} onDone={() => setPhase('deliver')} />
+        </>}
+        {phase === 'deliver' && <WorkDelivery job={job} onComplete={onComplete} />}
       </section>
     </div>
   )

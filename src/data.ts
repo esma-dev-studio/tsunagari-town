@@ -53,7 +53,7 @@ export const jobs: Job[] = [
     helpsWhom: 'きれいで安全な街でくらすすべての人',
     relatedJobs: ['リサイクルの仕事', '車の整備', '清そうの仕事'],
     tools: ['収集車', '手ぶくろ', '安全ベスト'],
-    mission: 'ごみを、合う集め場所へ安全に分けよう。',
+    mission: '3つの ごみを、あんぜんに 分けよう。',
     reward: 12, shared: 2,
     townEffect: '公園と道がきれいになり、資源も生かせました。',
     comment: '危ない物がないか、よく見て集めているよ。',

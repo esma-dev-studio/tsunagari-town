@@ -89,8 +89,23 @@ export interface SpendingRecord {
   amount: number
 }
 
+export type MoneyRecordKind = 'carryover' | 'income' | 'tax' | 'spend' | 'save' | 'event'
+
+export interface MoneyRecord {
+  id: string
+  source: string
+  week: number
+  kind: MoneyRecordKind
+  label: string
+  amount: number
+  walletDelta: number
+  savingsDelta: number
+  sharedDelta: number
+}
+
 export interface GameState {
   screen: Screen
+  resumeScreen: Screen | null
   week: number
   hasStarted: boolean
   selectedProblemId: string | null
@@ -100,8 +115,10 @@ export interface GameState {
   earnedJobCards: JobId[]
   grossEarned: number
   sharedPaid: number
+  totalSharedPaid: number
   wallet: number
   savings: number
+  ledger: MoneyRecord[]
   spending: SpendingRecord[]
   spendingReason: string
   eventId: string | null

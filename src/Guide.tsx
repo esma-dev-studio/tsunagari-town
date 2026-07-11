@@ -6,7 +6,7 @@ const actionGuides: Partial<Record<Screen, { icon: IconName; number: string; tit
   map: { icon: 'map', number: '1', title: 'オレンジの まるを タップ', text: 'ひかっている ばしょを さがそう' },
   problem: { icon: 'heart', number: '2', title: 'たすけたい こまりごとを えらぶ', text: '3つの どれを えらんでも だいじょうぶ' },
   job: { icon: 'briefcase', number: '3', title: 'だれを たすけるか よそうする', text: 'おもった ボタンを 1つ タップ' },
-  mission: { icon: 'tools', number: '4', title: 'みほんを 見て やってみる', text: 'まちがえても なんどでも できるよ' },
+  mission: { icon: 'tools', number: '4', title: 'じゅんび → しごと → とどける', text: '3つの ステップで しごとを たいけん' },
   payslip: { icon: 'coin', number: '5', title: 'もらった お金を 見る', text: 'じぶんと まちで つかう お金だよ' },
   spend: { icon: 'wallet', number: '6', title: 'お金の つかいみちを えらぶ', text: 'のこしても いくつ えらんでも OK' },
   event: { icon: 'weather', number: '7', title: 'どうするか 1つ えらぶ', text: 'たすけを つかうのも だいじょうぶ' },
