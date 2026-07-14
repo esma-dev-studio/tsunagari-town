@@ -98,11 +98,11 @@ export const problems: TownProblem[] = [
 ]
 
 export const expenseChoices: ExpenseChoice[] = [
-  { id: 'meal', name: '夕ごはんの材料', category: 'need', cost: 3, effect: '家の人と食べる物をそろえた', childDescription: 'くらしに使う' },
-  { id: 'notebook', name: 'ほしかったノート', category: 'want', cost: 2, effect: 'かく楽しみがふえた', childDescription: 'ほしい物に使う' },
+  { id: 'meal', name: '夕ごはんの材料', category: 'need', cost: 3, effect: '明日の げんきが 1こ ふえる', childDescription: 'くらしに使う' },
+  { id: 'notebook', name: 'しごとノート', category: 'want', cost: 2, effect: '今日の仕事の けいけんが 1ふえる', childDescription: '仕事を学ぶ' },
   { id: 'savings', name: 'もしものための貯金', category: 'save', cost: 3, effect: 'あとで使えるお金をのこした', childDescription: '貯めておく' },
-  { id: 'share', name: '食べ物を分ける活動', category: 'help', cost: 2, effect: '食事を必要とする人を応えんした', childDescription: 'だれかを助ける' },
-  { id: 'local-shop', name: '街の店で買い物', category: 'shop', cost: 2, effect: '店の仕事と次の仕入れにつながった', childDescription: '街で使う' },
+  { id: 'share', name: '食べ物を分ける活動', category: 'help', cost: 2, effect: '明日、まちの ありがとうが 1ふえる', childDescription: 'だれかを助ける' },
+  { id: 'local-shop', name: '街の店で買い物', category: 'shop', cost: 2, effect: '明日、店の 食べものが 1ふえる', childDescription: '街で使う' },
 ]
 
 export const unexpectedEvents: UnexpectedEvent[] = [
