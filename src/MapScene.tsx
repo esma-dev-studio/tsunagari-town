@@ -51,7 +51,7 @@ function Building({ x, y, id, label, kind, color, highlighted, onSelect }: Build
       transform={`translate(${x} ${y})`}
       role="button"
       tabIndex={0}
-      aria-label={`${label}の説明を見る`}
+      aria-label={`${label}の説明を見る${highlighted ? '。こまりごとあり' : ''}`}
       onClick={activate}
       onKeyDown={onKeyDown}
     >
@@ -139,7 +139,7 @@ export function MapScene({ highlightedIds = [], onSelect, compact = false }: { h
         <Building x={530} y={175} id="bakery" label="パン屋" kind="bakery" color="#cf744b" highlighted={highlightedIds.includes('bakery')} onSelect={onSelect} />
         <Building x={745} y={150} id="market" label="スーパー" kind="market" color="#4b8b84" highlighted={highlightedIds.includes('market')} onSelect={onSelect} />
         <Building x={970} y={180} id="hospital" label="病院" kind="hospital" color="#41849c" highlighted={highlightedIds.includes('hospital')} onSelect={onSelect} />
-        <g className="map-building" role="button" tabIndex={0} aria-label="バス停の説明を見る" onClick={() => onSelect?.('bus-stop')} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onSelect?.('bus-stop') }} transform="translate(170 385)">
+        <g className="map-building" role="button" tabIndex={0} aria-label={`バス停の説明を見る${highlightedIds.includes('bus-stop') ? '。こまりごとあり' : ''}`} onClick={() => onSelect?.('bus-stop')} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onSelect?.('bus-stop') }} transform="translate(170 385)">
           <ellipse className="building-shadow" cx="0" cy="36" rx="73" ry="17" />
           <rect x="-67" y="-8" width="125" height="49" rx="10" fill="#3f78a8" />
           <rect x="-46" y="2" width="25" height="17" rx="3" fill="#d6eff3" /><rect x="-13" y="2" width="25" height="17" rx="3" fill="#d6eff3" /><rect x="20" y="2" width="25" height="17" rx="3" fill="#d6eff3" />
@@ -153,13 +153,13 @@ export function MapScene({ highlightedIds = [], onSelect, compact = false }: { h
         <Building x={1040} y={380} id="waste" label="ごみ処理" kind="waste" color="#557957" highlighted={highlightedIds.includes('waste')} onSelect={onSelect} />
         <Building x={245} y={585} id="construction" label="工事現場" kind="construction" color="#c58c3c" highlighted={highlightedIds.includes('construction')} onSelect={onSelect} />
       </g>
-      <g className="park-zone" role="button" tabIndex={0} aria-label="公園の説明を見る" onClick={() => onSelect?.('park')} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onSelect?.('park') }}>
+      <g className="park-zone" role="button" tabIndex={0} aria-label={`公園の説明を見る${highlightedIds.includes('park') ? '。こまりごとあり' : ''}`} onClick={() => onSelect?.('park')} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onSelect?.('park') }}>
         <path d="m455 563 153-87 145 84-151 88z" fill="#a8c989" stroke={highlightedIds.includes('park') ? '#df853a' : '#8eb475'} strokeWidth={highlightedIds.includes('park') ? 7 : 3} />
         <Tree x={505} y={550} /><Tree x={670} y={555} scale={.85} /><Tree x={596} y={515} scale={.7} />
         <path d="M555 592q45-54 93-3" fill="none" stroke="#e7dfc3" strokeWidth="13" />
         <g className="map-label" transform="translate(605 635)"><rect x="-52" y="-17" width="104" height="34" rx="8" /><text textAnchor="middle" dominantBaseline="middle">公園</text></g>
       </g>
-      <g className="farm-zone" role="button" tabIndex={0} aria-label="農園の説明を見る" onClick={() => onSelect?.('farm')} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onSelect?.('farm') }}>
+      <g className="farm-zone" role="button" tabIndex={0} aria-label={`農園の説明を見る${highlightedIds.includes('farm') ? '。こまりごとあり' : ''}`} onClick={() => onSelect?.('farm')} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onSelect?.('farm') }}>
         <path d="m785 568 133-77 173 100-133 77z" fill="#9dba68" stroke={highlightedIds.includes('farm') ? '#df853a' : '#7d9c53'} strokeWidth={highlightedIds.includes('farm') ? 7 : 3} />
         {[0, 1, 2, 3].map((row) => <path key={row} d={`M${819 + row * 29} ${565 + row * 17}l96-55`} stroke={row % 2 ? '#d5cb6c' : '#718f4a'} strokeWidth="12" />)}
         <g className="map-label" transform="translate(955 645)"><rect x="-52" y="-17" width="104" height="34" rx="8" /><text textAnchor="middle" dominantBaseline="middle">農園</text></g>

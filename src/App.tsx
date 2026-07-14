@@ -15,23 +15,34 @@ import { Icon, type IconName } from './Icon'
 import { ChildJourney, GuideCharacter, ProblemPicture, TaskGuide } from './Guide'
 import { MapScene, facilities } from './MapScene'
 import { Mission } from './Mission'
+import { PaydaySimulator } from './PaydaySimulator'
 import { MoneyBook } from './MoneyBook'
-import type { GameState, Job, JobId, Screen, SpendingRecord } from './types'
+import { demandBonusFor } from './simulationData'
+import { readShiftProgress } from './shiftProgress'
+import { SpendSimulator } from './SpendSimulator'
+import { DayEndSimulator, SimulationHUD, TownSimulator, WeekReport } from './TownSimulator'
+import { JobBriefing, WorkplaceCenter } from './WorkplaceCenter'
+import type { GameState, Job, JobId, Screen, SpendingRecord, TownNeed } from './types'
 import { useGame } from './useGame'
 
-const stageScreens: Screen[] = ['map', 'problem', 'job', 'mission', 'payslip', 'spend', 'event', 'budget', 'flow', 'reflection']
+const simulationScreens: Screen[] = ['town', 'workplace', 'job', 'mission', 'payslip', 'spend', 'event', 'day-end', 'week-report']
+const coreJobIds: JobId[] = ['bakery', 'bus', 'waste']
+const stageScreens: Screen[] = [...simulationScreens, 'map', 'problem', 'budget', 'flow', 'reflection']
 const stages = [
-  { label: '困りごと', screens: ['map', 'problem', 'job'] },
-  { label: '仕事', screens: ['mission'] },
+  { label: '街', screens: ['town'] },
+  { label: '仕事を選ぶ', screens: ['workplace', 'job', 'map', 'problem'] },
+  { label: '働く', screens: ['mission'] },
   { label: '給料', screens: ['payslip'] },
-  { label: '使い方', screens: ['spend', 'event'] },
-  { label: '街の予算', screens: ['budget'] },
-  { label: 'お金の流れ', screens: ['flow', 'reflection'] },
+  { label: '街で暮らす', screens: ['spend', 'event'] },
+  { label: '一日の結果', screens: ['day-end', 'week-report', 'budget', 'flow', 'reflection'] },
 ]
 
 const screenTitles: Partial<Record<Screen, string>> = {
+  town: '街でくらす',
+  workplace: 'しごとセンター',
   map: 'つながりタウン', problem: '街の困りごと', job: '仕事をえらぶ', mission: '仕事ミッション',
   payslip: '給料のお知らせ', spend: 'お金の使い方', event: '予想外の出来事', budget: '街の予算会議',
+  'day-end': '今日のきろく', 'week-report': '3日間のせいせき',
   flow: 'お金の循環', reflection: '一週間の振り返り', encyclopedia: '仕事図鑑', parent: '保護者の方へ',
 }
 
@@ -67,13 +78,13 @@ function AppHeader({ screen, state, onHome, onMap, onBack }: { screen: Screen; s
         <div className="stage-meta"><span>街の1週間</span><strong>{stageIndex + 1} / {stages.length}</strong></div>
         <ol>{stages.map((stage, index) => <li key={stage.label} className={index < stageIndex ? 'is-done' : index === stageIndex ? 'is-current' : ''}><span>{index < stageIndex ? <Icon name="check" /> : index + 1}</span><b>{stage.label}</b></li>)}</ol>
       </div>}
-      <div className="mobile-progress" style={{ '--progress': `${Math.max(0, ((stageIndex + 1) / stages.length) * 100)}%` } as React.CSSProperties}><span>{stageIndex >= 0 ? stages[stageIndex].label : title}</span><b>{state.week}週目</b></div>
+      <div className="mobile-progress" style={{ '--progress': `${Math.max(0, ((stageIndex + 1) / stages.length) * 100)}%` } as React.CSSProperties}><span>{stageIndex >= 0 ? stages[stageIndex].label : title}</span><b>{simulationScreens.includes(screen) ? `${state.simulation.day}日目` : `${state.week}週目`}</b></div>
       <TaskGuide screen={screen} />
     </>
   )
 }
 
-function Opening({ hasProgress, onStart, onContinue }: { hasProgress: boolean; onStart: () => void; onContinue: () => void }) {
+function Opening({ hasProgress, canContinue, weekComplete, onStart, onContinue }: { hasProgress: boolean; canContinue: boolean; weekComplete: boolean; onStart: () => void; onContinue: () => void }) {
   return (
     <main className="opening-screen">
       <div className="opening-copy">
@@ -82,34 +93,35 @@ function Opening({ hasProgress, onStart, onContinue }: { hasProgress: boolean; o
           <GuideCharacter />
           <div className="guide-speech"><small>まちの あんない人「つなぐ」</small><strong>こまっている人を<br />いっしょに たすけよう！</strong></div>
         </div>
-        <p className="eyebrow">見て、タップして、まちを うごかそう</p>
-        <h1>お金と しごとの まち</h1>
-        <p className="opening-lead">やることは、3つだけ。</p>
+        <p className="eyebrow">3日間、じぶんで街を うごかそう</p>
+        <h1>はたらく・かせぐ・くらす</h1>
+        <p className="opening-lead">時間・げんき・お金を見ながら、仕事とくらしをじぶんで決めるゲーム。</p>
         <ChildJourney />
         <div className="opening-actions">
-          {hasProgress && <button type="button" className="button button-primary button-large" onClick={onContinue}>つづきから<Icon name="arrow" /></button>}
-          <button type="button" className={`button ${hasProgress ? 'button-secondary' : 'button-primary'} button-large`} onClick={onStart}>{hasProgress ? 'はじめから' : 'やってみる'}<Icon name="play" /></button>
+          {canContinue && <button type="button" className="button button-primary button-large" onClick={onContinue}>つづきから<Icon name="arrow" /></button>}
+          <button type="button" className={`button ${canContinue ? 'button-secondary' : 'button-primary'} button-large`} onClick={onStart}>{weekComplete ? '3日レポートを見る' : hasProgress ? 'はじめから' : 'やってみる'}<Icon name="play" /></button>
         </div>
         <p className="fiction-note"><Icon name="info" />この まちの お金は、べんきょう用の 数だよ。</p>
       </div>
-      <div className="opening-map" aria-hidden="true"><MapScene compact /><div className="map-float-card"><Icon name="briefcase" /><span><strong>6つの仕事</strong>だれを助ける？</span></div><div className="map-float-card second"><Icon name="coin" /><span><strong>お金の旅</strong>どこへ行く？</span></div></div>
+      <div className="opening-map" aria-hidden="true"><MapScene compact /><div className="map-float-card"><Icon name="briefcase" /><span><strong>3つの仕事</strong>ふかく体験</span></div><div className="map-float-card second"><Icon name="coin" /><span><strong>お金の旅</strong>どこへ行く？</span></div></div>
     </main>
   )
 }
 
 function Home({ state, onStart, onContinue, onNavigate, onReset }: { state: GameState; onStart: () => void; onContinue: () => void; onNavigate: (screen: Screen) => void; onReset: () => void }) {
+  const earnedCoreJobs = coreJobIds.filter((id) => state.earnedJobCards.includes(id))
   return <main className="page-shell home-page">
     <section className="home-hero">
-      <div><span className="eyebrow">まちの 1しゅうかんを やってみよう</span><h1>{state.weekComplete ? `${state.week}週目、おつかれさま！` : 'きょうは、だれを たすける？'}</h1><p>こまっている人を 見つけて、しごとで たすけよう。</p>
-        <div className="action-row">{state.hasStarted && !state.weekComplete && <button type="button" className="button button-primary" onClick={onContinue}>つづきから<Icon name="arrow" /></button>}<button type="button" className="button button-secondary" onClick={onStart}>{state.weekComplete ? '次の一週間へ' : 'はじめから'}<Icon name="play" /></button></div>
+      <div><span className="eyebrow">まちで しごとを たいけんしよう</span><h1>{state.weekComplete ? `${state.week}週目、おつかれさま！` : 'きょうは、どこで はたらく？'}</h1><p>せいふくをきて、いらいを受けて、おきゃくさんへ とどけよう。</p>
+        <div className="action-row">{state.hasStarted && !state.weekComplete && <button type="button" className="button button-primary" onClick={onContinue}>つづきから<Icon name="arrow" /></button>}<button type="button" className="button button-secondary" onClick={onStart}>{state.weekComplete ? '3日レポートを見る' : 'はじめから'}<Icon name="play" /></button></div>
       </div>
-      <div className="week-card"><span>これまでの仕事カード</span><strong>{state.earnedJobCards.length}<small> / 6</small></strong><div className="mini-job-row">{jobs.map((job) => <span key={job.id} className={state.earnedJobCards.includes(job.id) ? 'is-earned' : ''} style={{ '--job-color': job.color } as React.CSSProperties}>{job.shortName.slice(0, 1)}</span>)}</div><small>点数ではなく、体験のきろくだよ。</small></div>
+      <div className="week-card"><span>これまでの仕事カード</span><strong>{earnedCoreJobs.length}<small> / 3</small></strong><div className="mini-job-row">{jobs.filter((job) => coreJobIds.includes(job.id)).map((job) => <span key={job.id} className={earnedCoreJobs.includes(job.id) ? 'is-earned' : ''} style={{ '--job-color': job.color } as React.CSSProperties}>{job.shortName.slice(0, 1)}</span>)}</div><small>点数ではなく、体験のきろくだよ。</small></div>
     </section>
     <div className="home-journey"><ChildJourney /></div>
     <MoneyBook wallet={state.wallet} savings={state.savings} totalSharedPaid={state.totalSharedPaid} ledger={state.ledger} />
     <section className="home-menu" aria-label="メニュー">
       <button type="button" onClick={() => onNavigate('map')}><span className="menu-icon blue"><Icon name="map" /></span><span><strong>街の地図</strong><small>建物と仕事のつながりを見る</small></span><Icon name="arrow" /></button>
-      <button type="button" onClick={() => onNavigate('encyclopedia')}><span className="menu-icon orange"><Icon name="book" /></span><span><strong>仕事図鑑</strong><small>6つの仕事を体験できる</small></span><Icon name="arrow" /></button>
+      <button type="button" onClick={() => onNavigate('encyclopedia')}><span className="menu-icon orange"><Icon name="book" /></span><span><strong>仕事図鑑</strong><small>3つの仕事を深く体験できる</small></span><Icon name="arrow" /></button>
       <button type="button" onClick={() => onNavigate('parent')}><span className="menu-icon green"><Icon name="community" /></span><span><strong>保護者の方へ</strong><small>体験の見方と声かけ例</small></span><Icon name="arrow" /></button>
     </section>
     <button type="button" className="text-button danger" onClick={onReset}><Icon name="reset" />進みぐあいをリセット</button>
@@ -129,7 +141,7 @@ function TownMapPage({ state, onProblem }: { state: GameState; onProblem: () => 
     setFoundProblemIds((current) => [...new Set([...current, ...found])])
   }
   return <main className="map-page">
-    <div className="map-topline"><div><span className="eyebrow">STEP 1</span><h1>オレンジの まるは どこ？</h1><p>ひかっている ばしょを 1つ タップしよう。</p></div><button type="button" className="button button-primary" disabled={foundProblemIds.length === 0} onClick={onProblem}>{foundProblemIds.length ? `${foundProblemIds.length}こ 見つけた！ えらぶ` : 'まず まるを タップ'}<Icon name="arrow" /></button></div>
+    <div className="map-topline"><div><span className="eyebrow">STEP 1</span><h1>オレンジの まるは どこ？</h1><p>地図を 左右に うごかして、ひかる ばしょを 1つ タップしよう。</p></div><button type="button" className="button button-primary" disabled={foundProblemIds.length === 0} onClick={onProblem}>{foundProblemIds.length ? `${foundProblemIds.length}こ 見つけた！ えらぶ` : 'まず まるを タップ'}<Icon name="arrow" /></button></div>
     <div className="map-workspace"><div className="map-frame"><MapScene highlightedIds={affectedIds} onSelect={selectFacility} /></div>
       <aside className={`facility-panel ${foundProblem ? 'has-problem' : ''}`} aria-live="polite">
         {!selectedFacility && <div className="tap-hint"><span><Icon name="map" /></span><strong>オレンジの まるを<br />タップしてね</strong><p>こまりごとが 見つかるよ。</p></div>}
@@ -162,8 +174,8 @@ function JobPage({ selectedProblemId, selectedJobId, onSelectJob, onStart }: { s
   return <main className="page-shell job-page"><section className="page-intro compact"><span className="eyebrow">STEP 3</span><h1>だれを たすける しごと？</h1><p>おもった ボタンを 1つ タップしてね。</p></section>
     <div className="thought-row" role="group" aria-label="だれを助けるか予想する">{['おきゃくさん', 'ほかの しごと', 'まちの みんな'].map((label) => <button type="button" key={label} className={thought === label ? 'is-selected' : ''} onClick={() => setThought(label)}>{thought === label && <Icon name="check" />}{label}</button>)}</div>
     {thought && <section className="job-feature" style={{ '--job-color': job.color } as React.CSSProperties}><div className="job-feature-main"><span className="job-chip">今日の仕事</span><h2>{job.name}</h2><p>{job.description}</p><div className="job-facts"><div><span>助ける人</span><strong>{job.helpsWhom}</strong></div><div><span>つながる仕事</span><strong>{job.relatedJobs.join('・')}</strong></div></div></div><div className="job-feature-side"><JobSymbol job={job} /><div><span>仕事でもらう</span><strong>{job.reward}<small>コイン</small></strong><p>仕事の大切さの順位ではないよ。</p></div></div><div className="job-question"><Icon name="info" /><span>{job.question}</span></div></section>}
-    <div className="job-actions">{thought && <button type="button" className="button button-primary button-large" onClick={onStart}>この しごとを やってみる<Icon name="arrow" /></button>}<button type="button" className="text-button" onClick={() => setShowAll(!showAll)}>{showAll ? 'しごとの いちらんを とじる' : 'ほかの しごとも 見る'}</button></div>
-    {showAll && <div className="job-picker">{jobs.map((item) => <button type="button" key={item.id} className={item.id === job.id ? 'is-selected' : ''} onClick={() => { onSelectJob(item.id); setThought(null); setShowAll(false) }}><span style={{ background: item.color }}><JobMiniIcon id={item.id} /></span><strong>{item.shortName}</strong></button>)}</div>}
+    <div className="job-actions">{thought && coreJobIds.includes(job.id) && <button type="button" className="button button-primary button-large" onClick={onStart}>この しごとを やってみる<Icon name="arrow" /></button>}{thought && !coreJobIds.includes(job.id) && <p className="important-note">この仕事の体験は じゅんび中。図鑑で 仕事のつながりを 見られるよ。</p>}<button type="button" className="text-button" onClick={() => setShowAll(!showAll)}>{showAll ? 'しごとの いちらんを とじる' : 'ほかの しごとも 見る'}</button></div>
+    {showAll && <div className="job-picker">{jobs.filter((item) => coreJobIds.includes(item.id)).map((item) => <button type="button" key={item.id} className={item.id === job.id ? 'is-selected' : ''} onClick={() => { onSelectJob(item.id); setThought(null); setShowAll(false) }}><span style={{ background: item.color }}><JobMiniIcon id={item.id} /></span><strong>{item.shortName}</strong></button>)}</div>}
   </main>
 }
 
@@ -182,7 +194,7 @@ function PayslipPage({ job, state, onNext }: { job: Job; state: GameState; onNex
     <section className="payslip"><div className="payslip-head"><span>つながりタウン 給料のお知らせ</span><strong>{job.name}</strong></div><div className="payslip-coins" aria-label={`${job.reward}コインのうち、税金が${job.shared}コイン、自分で使えるお金が${takeHome}コイン`}>{Array.from({ length: job.reward }, (_, index) => <span key={index} className={index < job.shared ? 'is-shared' : 'is-takehome'}><Icon name="coin" /></span>)}</div><div className="coin-legend"><span className="shared-dot" />ぜいきん {job.shared}<span className="takehome-dot" />じぶんで つかえる {takeHome}</div><div className="money-line gross"><span>仕事でもらったお金</span><strong>{job.reward}<small>コイン</small></strong></div><div className="money-line shared"><span><b>ぜいきん（街でいっしょに使うお金）</b><small>学校・道・公園などへ</small></span><strong>− {job.shared}<small>コイン</small></strong></div><div className="money-line net"><span>この仕事の あとに のこるお金</span><strong>{takeHome}<small>コイン</small></strong></div></section>
     <div className="total-wallet-callout"><Icon name="wallet" /><span><small>前から のこした分も あわせると</small><strong>おさいふは {state.wallet}コイン</strong></span></div>
     <details className="learn-more"><summary>街でいっしょに使うお金って？</summary><p>みんなで少しずつ出して、学校、道路、公園、消防などに使います。何にどれだけ使うかは、考えて決めることが大切です。これは税金を学ぶために、かんたんにした仕組みです。</p></details>
-    <div className="center-action"><button type="button" className="button button-primary button-large" onClick={onNext}>お金の使い方を考える<Icon name="arrow" /></button></div>
+    <div className="center-action"><button type="button" className="button button-primary button-large" onClick={onNext}>しごと帰りに 街のお店へ<Icon name="arrow" /></button></div>
   </main>
 }
 
@@ -216,7 +228,7 @@ function EventPage({ state, onChoose, onNext }: { state: GameState; onChoose: (i
   const event = unexpectedEvents.find((item) => item.id === state.eventId) ?? unexpectedEvents[0]
   const chosen = event.availableResponses.find((response) => response.id === state.eventResponseId)
   return <main className="page-shell narrow"><section className="event-card"><div className="event-visual"><Icon name={event.id === 'rain' ? 'weather' : event.id === 'family' ? 'heart' : event.id === 'festival' ? 'community' : 'tools'} /><span>予想外のできごと</span></div><h1>{event.title}</h1><p>{event.description}</p></section>
-    {!chosen ? <><div className="event-balances"><span><Icon name="wallet" />おさいふ <strong>{state.wallet}</strong></span><span><Icon name="piggy" />ちょきん <strong>{state.savings}</strong></span></div><h2 className="choice-heading">どうする？ お金が たりる方法から えらぼう。</h2><div className="response-list">{event.availableResponses.map((response) => { const walletCost = Math.max(0, -(response.walletChange ?? 0)); const savingsCost = Math.max(0, -(response.savingsChange ?? 0)); const unavailable = walletCost > state.wallet || savingsCost > state.savings; const costLabel = unavailable ? 'お金が たりないよ' : walletCost > 0 ? `おさいふ −${walletCost}` : savingsCost > 0 ? `ちょきん −${savingsCost}` : 'お金は へらない'; return <button type="button" key={response.id} disabled={unavailable} onClick={() => onChoose(response.id)}><span>{response.usesSupport ? <Icon name="community" /> : <Icon name="wallet" />}</span><span className="response-copy"><strong>{response.label}</strong><small>{costLabel}</small></span><Icon name="arrow" /></button> })}</div></> : <section className="consequence-box"><span className="eyebrow">あなたのえらび方</span><h2>{chosen.label}</h2><p>{chosen.consequence}</p><div className="event-result-money"><span><Icon name="wallet" />おさいふ {state.wallet}</span><span><Icon name="piggy" />ちょきん {state.savings}</span></div>{chosen.usesSupport && <div className="support-note"><Icon name="community" />一人だけで何とかせず、助けを使うことも大切です。</div>}<button type="button" className="button button-primary" onClick={onNext}>街の予算会議へ<Icon name="arrow" /></button></section>}
+    {!chosen ? <><div className="event-balances"><span><Icon name="wallet" />おさいふ <strong>{state.wallet}</strong></span><span><Icon name="piggy" />ちょきん <strong>{state.savings}</strong></span></div><h2 className="choice-heading">どうする？ お金が たりる方法から えらぼう。</h2><div className="response-list">{event.availableResponses.map((response) => { const walletCost = Math.max(0, -(response.walletChange ?? 0)); const savingsCost = Math.max(0, -(response.savingsChange ?? 0)); const unavailable = walletCost > state.wallet || savingsCost > state.savings; const costLabel = unavailable ? 'お金が たりないよ' : walletCost > 0 ? `おさいふ −${walletCost}` : savingsCost > 0 ? `ちょきん −${savingsCost}` : 'お金は へらない'; return <button type="button" key={response.id} disabled={unavailable} onClick={() => onChoose(response.id)}><span>{response.usesSupport ? <Icon name="community" /> : <Icon name="wallet" />}</span><span className="response-copy"><strong>{response.label}</strong><small>{costLabel}</small></span><Icon name="arrow" /></button> })}</div></> : <section className="consequence-box"><span className="eyebrow">あなたのえらび方</span><h2>{chosen.label}</h2><p>{chosen.consequence}</p><div className="event-result-money"><span><Icon name="wallet" />おさいふ {state.wallet}</span><span><Icon name="piggy" />ちょきん {state.savings}</span></div>{chosen.usesSupport && <div className="support-note"><Icon name="community" />一人だけで何とかせず、助けを使うことも大切です。</div>}<button type="button" className="button button-primary" onClick={onNext}>家へ かえって 今日をまとめる<Icon name="arrow" /></button></section>}
   </main>
 }
 
@@ -262,7 +274,7 @@ function ReflectionPage({ state, onSave, onHome, onNextWeek }: { state: GameStat
 function SummaryItem({ icon, label, value }: { icon: IconName; label: string; value: string }) { return <div className="summary-item"><span><Icon name={icon} /></span><small>{label}</small><strong>{value}</strong></div> }
 
 function Encyclopedia({ state, onTry }: { state: GameState; onTry: (id: JobId) => void }) {
-  return <main className="page-shell"><section className="page-intro"><span className="eyebrow">つながりタウン 仕事図鑑</span><h1>ちがう仕事が、つながっている</h1><p>給料のちがいは、大切さの順位ではありません。</p></section><div className="encyclopedia-grid">{jobs.map((job) => <article key={job.id} className="encyclopedia-card" style={{ '--job-color': job.color } as React.CSSProperties}><div className="encyclopedia-art"><JobSymbol job={job} />{state.earnedJobCards.includes(job.id) && <span className="earned-stamp"><Icon name="check" />体験した</span>}</div><div><span className="job-chip">{job.reward}コイン</span><h2>{job.name}</h2><p>{job.description}</p><dl><div><dt>助ける人</dt><dd>{job.helpsWhom}</dd></div><div><dt>道具</dt><dd>{job.tools.join('・')}</dd></div><div><dt>つながる仕事</dt><dd>{job.relatedJobs.join('・')}</dd></div></dl><button type="button" className="button button-secondary" onClick={() => onTry(job.id)}>この仕事を体験<Icon name="arrow" /></button></div></article>)}</div></main>
+  return <main className="page-shell"><section className="page-intro"><span className="eyebrow">つながりタウン 仕事図鑑</span><h1>ちがう仕事が、つながっている</h1><p>給料のちがいは、大切さの順位ではありません。</p></section><div className="encyclopedia-grid">{jobs.map((job) => { const playable = coreJobIds.includes(job.id); return <article key={job.id} className="encyclopedia-card" style={{ '--job-color': job.color } as React.CSSProperties}><div className="encyclopedia-art"><JobSymbol job={job} />{state.earnedJobCards.includes(job.id) && <span className="earned-stamp"><Icon name="check" />体験した</span>}</div><div><span className="job-chip">{job.reward}コイン</span><h2>{job.name}</h2><p>{job.description}</p><dl><div><dt>助ける人</dt><dd>{job.helpsWhom}</dd></div><div><dt>道具</dt><dd>{job.tools.join('・')}</dd></div><div><dt>つながる仕事</dt><dd>{job.relatedJobs.join('・')}</dd></div></dl><button type="button" disabled={!playable} className="button button-secondary" onClick={() => onTry(job.id)}>{playable ? 'この仕事を体験' : '体験は じゅんび中'}{playable && <Icon name="arrow" />}</button></div></article> })}</div></main>
 }
 
 function ParentPage({ state }: { state: GameState }) {
@@ -275,33 +287,38 @@ function App() {
   const { state } = game
   const job = jobById(state.selectedJobId)
   const currentProblem = problemById(state.selectedProblemId)
-  const selectedJob = job ?? jobById(currentProblem?.relatedJobs[0] ?? null)
+  const selectedJobCandidate = job ?? jobById(currentProblem?.relatedJobs[0] ?? null)
+  const selectedJob = selectedJobCandidate && coreJobIds.includes(selectedJobCandidate.id) ? selectedJobCandidate : undefined
 
   const goBack = () => {
-    const previous: Partial<Record<Screen, Screen>> = { problem: 'map', job: 'problem', mission: 'job', payslip: 'mission', spend: 'payslip', event: 'spend', budget: 'event', flow: 'budget', reflection: 'flow' }
+    const previous: Partial<Record<Screen, Screen>> = { town: 'home', workplace: 'town', problem: 'map', job: 'workplace', mission: 'job', payslip: 'town', spend: 'town', event: 'town', 'day-end': 'town', 'week-report': 'home', budget: 'event', flow: 'budget', reflection: 'flow' }
     game.setScreen(previous[state.screen] ?? 'home')
   }
 
   const body = useMemo(() => {
     switch (state.screen) {
-      case 'opening': return <Opening hasProgress={state.hasStarted} onStart={() => game.startWeek(false)} onContinue={() => game.startWeek(true)} />
-      case 'home': return <Home state={state} onStart={() => game.startWeek(false)} onContinue={() => game.startWeek(true)} onNavigate={game.setScreen} onReset={() => { if (window.confirm('進みぐあいをすべて消しますか？')) game.reset() }} />
+      case 'opening': return <Opening hasProgress={state.hasStarted} canContinue={state.hasStarted && !state.weekComplete} weekComplete={state.weekComplete} onStart={() => { if (state.hasStarted && !state.weekComplete && !window.confirm('いまの つづきが きえます。はじめから やりますか？')) return; game.startWeek(false) }} onContinue={() => game.startWeek(true)} />
+      case 'home': return <Home state={state} onStart={() => { if (state.hasStarted && !state.weekComplete && !window.confirm('いまの つづきが きえます。はじめから やりますか？')) return; game.startWeek(false) }} onContinue={() => game.startWeek(true)} onNavigate={game.setScreen} onReset={() => { if (window.confirm('進みぐあいをすべて消しますか？')) game.reset() }} />
+      case 'workplace': return <WorkplaceCenter state={state} onSelect={game.selectJob} onMap={() => game.setScreen('town')} />
       case 'map': return <TownMapPage state={state} onProblem={() => game.setScreen('problem')} />
+      case 'town': return <TownSimulator state={state} onWork={() => game.setScreen('workplace')} onShop={() => game.setScreen('spend')} onHome={game.goHome} />
       case 'problem': return <ProblemPage state={state} onSelect={game.selectProblem} />
-      case 'job': return <JobPage selectedProblemId={state.selectedProblemId} selectedJobId={state.selectedJobId} onSelectJob={game.selectJob} onStart={() => { if (!state.selectedJobId && selectedJob) game.selectJob(selectedJob.id); game.beginMission() }} />
-      case 'mission': return selectedJob ? <Mission job={selectedJob} onComplete={game.completeMission} /> : null
-      case 'payslip': return selectedJob ? <PayslipPage job={selectedJob} state={state} onNext={() => game.setScreen('spend')} /> : null
-      case 'spend': return <SpendPage state={state} onSave={game.saveSpending} />
-      case 'event': return <EventPage state={state} onChoose={game.chooseEventResponse} onNext={() => game.setScreen('budget')} />
+      case 'job': return selectedJob ? <JobBriefing job={selectedJob} skillLevel={state.simulation.jobStats[selectedJob.id].level} demandBonus={demandBonusFor(state.simulation, selectedJob.id)} resumeShift={Boolean(readShiftProgress(state.week, state.simulation.day, selectedJob.id))} onBack={() => game.setScreen('workplace')} onStart={() => game.beginMission(selectedJob.id)} /> : <WorkplaceCenter state={state} onSelect={game.selectJob} onMap={() => game.setScreen('town')} />
+      case 'mission': return selectedJob ? <Mission job={selectedJob} week={state.week} day={state.simulation.day} skillLevel={state.simulation.jobStats[selectedJob.id].level} demandBonus={demandBonusFor(state.simulation, selectedJob.id)} onComplete={game.completeMission} /> : null
+      case 'payslip': return selectedJob ? <PaydaySimulator job={selectedJob} state={state} onNext={() => game.setScreen('town')} /> : null
+      case 'spend': return <SpendSimulator state={state} onSave={game.saveSpending} />
+      case 'event': return <EventPage state={state} onChoose={game.chooseEventResponse} onNext={game.completeDay} />
+      case 'day-end': return <DayEndSimulator state={state} onNext={game.startNextDay} onReport={game.openWeekReport} />
+      case 'week-report': return <WeekReport state={state} onNextWeek={(investment: TownNeed) => game.startWeek(false, investment)} />
       case 'budget': return <BudgetPage state={state} onSave={game.saveBudget} />
       case 'flow': return <FlowPage onNext={() => game.setScreen('reflection')} />
       case 'reflection': return <ReflectionPage state={state} onSave={game.saveReflections} onHome={() => game.setScreen('home')} onNextWeek={() => game.startWeek(false)} />
-      case 'encyclopedia': return <Encyclopedia state={state} onTry={(id) => { game.selectJob(id); game.setScreen('job') }} />
+      case 'encyclopedia': return <Encyclopedia state={state} onTry={(id) => { if (state.weekComplete) { game.startWeek(false); return } game.selectJob(id) }} />
       case 'parent': return <ParentPage state={state} />
     }
   }, [game, selectedJob, state])
 
-  return <div className="app"><AppHeader screen={state.screen} state={state} onHome={() => game.setScreen('home')} onMap={() => game.setScreen('map')} onBack={goBack} />{body}<footer className="app-footer"><span>つながりタウン</span><span>この教材の数は架空のものです。</span></footer></div>
+  return <div className="app"><AppHeader screen={state.screen} state={state} onHome={() => game.setScreen('home', true)} onMap={() => game.setScreen(state.weekComplete && state.resumeScreen === 'week-report' ? 'week-report' : state.hasStarted ? 'town' : 'map', true)} onBack={goBack} />{simulationScreens.includes(state.screen) && <SimulationHUD state={state} />}{body}<footer className="app-footer"><span>つながりタウン</span><span>この教材の数は架空のものです。</span></footer></div>
 }
 
 export default App

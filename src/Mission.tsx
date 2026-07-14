@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from './Icon'
-import type { Job, JobId } from './types'
+import { ShiftSimulator } from './ShiftSimulator'
+import type { Job, JobId, ShiftResult } from './types'
 import { WorkDelivery, WorkPhaseBar, WorkPreparation, type WorkPhase } from './WorkShift'
 import './workShift.css'
 
@@ -183,7 +184,7 @@ function MissionGame({ jobId, onDone }: { jobId: JobId; onDone: () => void }) {
   ]} targets={[{ id: 'story', label: 'ものがたり' }, { id: 'science', label: 'しぜん・かがく' }, { id: 'life', label: 'くらし・りょうり' }]} />
 }
 
-export function Mission({ job, onComplete }: { job: Job; onComplete: () => void }) {
+function LegacyMission({ job, onComplete }: { job: Job; onComplete: () => void }) {
   const tools = useMemo(() => job.tools.join('・'), [job.tools])
   const [phase, setPhase] = useState<WorkPhase>('prepare')
   const consoleRef = useRef<HTMLElement>(null)
@@ -215,4 +216,8 @@ export function Mission({ job, onComplete }: { job: Job; onComplete: () => void 
       </section>
     </div>
   )
+}
+
+export function Mission({ job, week, day, skillLevel, demandBonus, onComplete }: { job: Job; week: number; day: number; skillLevel: number; demandBonus: number; onComplete: (result: ShiftResult) => void }) {
+  return <ShiftSimulator job={job} week={week} day={day} skillLevel={skillLevel} demandBonus={demandBonus} onComplete={onComplete} />
 }

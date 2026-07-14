@@ -1,6 +1,8 @@
 export type Screen =
   | 'opening'
   | 'home'
+  | 'town'
+  | 'workplace'
   | 'map'
   | 'problem'
   | 'job'
@@ -10,6 +12,8 @@ export type Screen =
   | 'event'
   | 'budget'
   | 'flow'
+  | 'day-end'
+  | 'week-report'
   | 'reflection'
   | 'encyclopedia'
   | 'parent'
@@ -103,15 +107,73 @@ export interface MoneyRecord {
   sharedDelta: number
 }
 
+export type TownNeed = 'food' | 'transport' | 'cleanliness'
+
+export interface ShiftResult {
+  jobId: JobId
+  basePay: number
+  bonus: number
+  demandBonus: number
+  grossPay: number
+  tax: number
+  quality: 1 | 2 | 3
+  mistakes: number
+  timeMinutes: number
+  energyUsed: number
+}
+
+export interface JobStat {
+  shifts: number
+  xp: number
+  level: number
+  bestQuality: number
+}
+
+export interface SimulationDayRecord {
+  day: number
+  jobId: JobId
+  grossEarned: number
+  taxPaid: number
+  spent: number
+  saved: number
+  endingWallet: number
+  endingSavings: number
+  quality: number
+  trustGained: number
+  townNeed: TownNeed
+}
+
+export interface SimulationState {
+  schemaVersion: number
+  day: number
+  totalDays: number
+  phase: 'morning' | 'after-work' | 'evening' | 'day-complete' | 'week-complete'
+  clockMinutes: number
+  energy: number
+  maxEnergy: number
+  townTrust: number
+  town: Record<TownNeed, number>
+  todayNeed: TownNeed
+  jobStats: Record<JobId, JobStat>
+  workedToday: boolean
+  shoppedToday: boolean
+  dayStartWallet: number
+  dayStartSavings: number
+  lastShift: ShiftResult | null
+  history: SimulationDayRecord[]
+}
+
 export interface GameState {
   screen: Screen
   resumeScreen: Screen | null
+  experienceVersion: number
   week: number
   hasStarted: boolean
   selectedProblemId: string | null
   selectedJobId: JobId | null
   activeProblemIds: string[]
   completedMissions: JobId[]
+  simulation: SimulationState
   earnedJobCards: JobId[]
   grossEarned: number
   sharedPaid: number

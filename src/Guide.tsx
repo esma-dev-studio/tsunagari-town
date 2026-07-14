@@ -3,16 +3,20 @@ import type { JobId, Screen } from './types'
 import './guide.css'
 
 const actionGuides: Partial<Record<Screen, { icon: IconName; number: string; title: string; text: string }>> = {
+  town: { icon: 'map', number: '1', title: 'まちで つぎの行き先を えらぶ', text: 'じかん・げんき・お金を見て きめよう' },
   map: { icon: 'map', number: '1', title: 'オレンジの まるを タップ', text: 'ひかっている ばしょを さがそう' },
   problem: { icon: 'heart', number: '2', title: 'たすけたい こまりごとを えらぶ', text: '3つの どれを えらんでも だいじょうぶ' },
-  job: { icon: 'briefcase', number: '3', title: 'だれを たすけるか よそうする', text: 'おもった ボタンを 1つ タップ' },
-  mission: { icon: 'tools', number: '4', title: 'じゅんび → しごと → とどける', text: '3つの ステップで しごとを たいけん' },
-  payslip: { icon: 'coin', number: '5', title: 'もらった お金を 見る', text: 'じぶんと まちで つかう お金だよ' },
-  spend: { icon: 'wallet', number: '6', title: 'お金の つかいみちを えらぶ', text: 'のこしても いくつ えらんでも OK' },
-  event: { icon: 'weather', number: '7', title: 'どうするか 1つ えらぶ', text: 'たすけを つかうのも だいじょうぶ' },
-  budget: { icon: 'home', number: '8', title: '10コインを まちに わける', text: '＋と − で ちょうせいしよう' },
-  flow: { icon: 'arrow', number: '9', title: 'お金の やじるしを タップ', text: 'どこから どこへ いくのかな' },
-  reflection: { icon: 'book', number: '10', title: 'おもったことを のこす', text: 'みじかくても こたえなくても OK' },
+  workplace: { icon: 'briefcase', number: '2', title: '街のようすを見て しごとを えらぶ', text: '好きな仕事でも、困っている仕事でもOK' },
+  job: { icon: 'book', number: '3', title: 'せいふく・いらい・給料を 見る', text: 'このシフトで何をするのかな' },
+  mission: { icon: 'tools', number: '4', title: '考える → うごかす → たしかめる', text: 'まちがえたら ヒントで なおせるよ' },
+  payslip: { icon: 'coin', number: '5', title: '基本給・ボーナス・ぜいきんを見る', text: 'おさいふに入る数を たしかめよう' },
+  spend: { icon: 'shop', number: '6', title: 'お店 → レジ → ぎんこう', text: '買う・ためる・のこすが 明日につながる' },
+  event: { icon: 'weather', number: '6', title: 'どうするか 1つ えらぶ', text: 'たすけを つかうのも だいじょうぶ' },
+  'day-end': { icon: 'home', number: '7', title: '今日のお金と街の変化を見る', text: '買ったものは 明日どうなるかな' },
+  'week-report': { icon: 'community', number: '8', title: '3日間のせいせきと税金を 見る', text: 'つぎの街を よくする場所をえらぼう' },
+  budget: { icon: 'home', number: '7', title: '10コインを まちに わける', text: '＋と − で ちょうせいしよう' },
+  flow: { icon: 'arrow', number: '8', title: 'お金の やじるしを タップ', text: 'どこから どこへ いくのかな' },
+  reflection: { icon: 'book', number: '9', title: 'おもったことを のこす', text: 'みじかくても こたえなくても OK' },
 }
 
 export function TaskGuide({ screen }: { screen: Screen }) {
@@ -44,9 +48,9 @@ export function GuideCharacter() {
 
 export function ChildJourney() {
   const steps: Array<{ icon: IconName; title: string; text: string }> = [
-    { icon: 'map', title: '見つける', text: 'まちの こまりごと' },
-    { icon: 'briefcase', title: 'たすける', text: 'しごとに ちょうせん' },
-    { icon: 'coin', title: 'えらぶ', text: 'お金の つかいかた' },
+    { icon: 'briefcase', title: 'はたらく', text: 'せいふく・いらい・さぎょう' },
+    { icon: 'coin', title: 'もらう', text: 'きゅうりょう・ぜいきん' },
+    { icon: 'shop', title: 'つかう・ためる', text: 'お店・レジ・ぎんこう' },
   ]
   return <ol className="child-journey" aria-label="ゲームの3つの流れ">{steps.map((step, index) => <li key={step.title}><span>{index + 1}</span><i><Icon name={step.icon} /></i><strong>{step.title}</strong><small>{step.text}</small>{index < steps.length - 1 && <Icon name="arrow" className="journey-arrow" />}</li>)}</ol>
 }
