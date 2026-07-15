@@ -103,7 +103,7 @@ export function MoneyBook({ wallet, savings, totalSharedPaid, ledger }: MoneyBoo
                 <li key={record.id} className={`money-ledger-record is-${record.kind}`}>
                   <span className="money-ledger-icon" aria-hidden="true"><Icon name={appearance.icon} /></span>
                   <span className="money-ledger-copy">
-                    <small>{record.week}週目・{appearance.action}</small>
+                    <small>第{record.week}回・{appearance.action}</small>
                     <strong>{record.label}</strong>
                   </span>
                   <strong className={`money-ledger-amount ${amountTone}`}>{coinAmount(record.amount)}</strong>

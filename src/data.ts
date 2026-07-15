@@ -98,34 +98,34 @@ export const problems: TownProblem[] = [
 ]
 
 export const expenseChoices: ExpenseChoice[] = [
-  { id: 'meal', name: '夕ごはんの材料', category: 'need', cost: 3, effect: '明日の げんきが 1こ ふえる', childDescription: 'くらしに使う' },
-  { id: 'notebook', name: 'しごとノート', category: 'want', cost: 2, effect: '今日の仕事の けいけんが 1ふえる', childDescription: '仕事を学ぶ' },
-  { id: 'savings', name: 'もしものための貯金', category: 'save', cost: 3, effect: 'あとで使えるお金をのこした', childDescription: '貯めておく' },
-  { id: 'share', name: '食べ物を分ける活動', category: 'help', cost: 2, effect: '明日、まちの ありがとうが 1ふえる', childDescription: 'だれかを助ける' },
-  { id: 'local-shop', name: '街の店で買い物', category: 'shop', cost: 2, effect: '明日、店の 食べものが 1ふえる', childDescription: '街で使う' },
+  { id: 'meal', name: '夕ごはんの材料', category: 'need', cost: 5, effect: '明日の げんきが 1こ 多く かいふくする', childDescription: 'くらしに使う' },
+  { id: 'notebook', name: 'しごとノート', category: 'want', cost: 4, effect: '今日の仕事の けいけんが 1ふえる', childDescription: '仕事を学ぶ' },
+  { id: 'savings', name: 'もしものための貯金', category: 'save', cost: 5, effect: 'あとで使えるお金をのこした', childDescription: '貯めておく' },
+  { id: 'share', name: '食べ物を分ける活動', category: 'help', cost: 4, effect: '明日、まちの ありがとうが 1ふえる', childDescription: 'だれかを助ける' },
+  { id: 'local-shop', name: '街の店で買い物', category: 'shop', cost: 5, effect: '明日、店の 食べものが 1ふえる', childDescription: '街で使う' },
 ]
 
 export const unexpectedEvents: UnexpectedEvent[] = [
   { id: 'bike', title: '自転車のタイヤがこわれた', description: 'なおすには3コイン。明日の予定もあります。', availableResponses: [
     { id: 'pay', label: '今あるお金でなおす', consequence: 'すぐ乗れるようになりました。ほかの買い物は少し待ちます。', walletChange: -3 },
     { id: 'save', label: '貯金から出す', consequence: '予定をかえずになおせました。貯金はへりました。', savingsChange: -3 },
-    { id: 'walk', label: '歩いて、あとで考える', consequence: '時間はかかりましたが、お金をのこせました。' },
-    { id: 'help', label: '修理を助ける仕組みを聞く', consequence: '街の相談員が、安く直せる場所を教えてくれました。', walletChange: -1, usesSupport: true },
+    { id: 'walk', label: '歩いて、あとで考える', consequence: '30分かかり、げんきを1こ使いました。お金はのこせました。', energyChange: -1, timeMinutesChange: 30 },
+    { id: 'help', label: '修理を助ける仕組みを聞く', consequence: '1コインでなおせる場所が見つかり、街とのつながりもふえました。', walletChange: -1, trustChange: 1, usesSupport: true },
   ]},
   { id: 'rain', title: '大雨でバスがおくれている', description: '出かける方法を、もう一度考えます。', availableResponses: [
-    { id: 'wait', label: '安全な場所で待つ', consequence: '少しおくれましたが、安全に移動できました。' },
-    { id: 'change', label: '予定を明日にかえる', consequence: '今日でなくてもよい用事を、明日にしました。' },
-    { id: 'info', label: '街の案内をたしかめる', consequence: '市役所の案内で、安全な道が分かりました。', usesSupport: true },
+    { id: 'wait', label: '安全な場所で待つ', consequence: '安全に待ちました。30分たち、げんきを1こ使いました。', energyChange: -1, timeMinutesChange: 30 },
+    { id: 'change', label: '予定を明日にかえる', consequence: '今日は家で休み、げんきが1こもどりました。', energyChange: 1 },
+    { id: 'info', label: '街の案内をたしかめる', consequence: '10分で安全な道が分かり、街とのつながりもふえました。', timeMinutesChange: 10, trustChange: 1, usesSupport: true },
   ]},
   { id: 'family', title: '家の人が体調をくずした', description: '今日は家のことを、だれかがする必要があります。', availableResponses: [
-    { id: 'care', label: '予定をかえ、家のことをする', consequence: '給料の出ない仕事も、くらしを支えると気づきました。' },
-    { id: 'ask', label: 'まわりの人に助けをたのむ', consequence: 'できることを分け合い、みんなで休めました。', usesSupport: true },
-    { id: 'service', label: '街の相談先を使う', consequence: '使えるサービスを聞き、安心できました。', usesSupport: true },
+    { id: 'care', label: '予定をかえ、家のことをする', consequence: 'げんきを1こ使って家を支え、ありがとうが2こふえました。', energyChange: -1, trustChange: 2 },
+    { id: 'ask', label: 'まわりの人に助けをたのむ', consequence: 'できることを分け合い、げんきとつながりが1こずつふえました。', energyChange: 1, trustChange: 1, usesSupport: true },
+    { id: 'service', label: '街の相談先を使う', consequence: '相談して安心でき、げんきが2こ、つながりが1こふえました。', energyChange: 2, trustChange: 1, usesSupport: true },
   ]},
   { id: 'festival', title: '街のお祭りがひらかれる', description: '楽しむことと、のこすお金を考えます。', availableResponses: [
     { id: 'small', label: '2コインだけ使う', consequence: '決めた分で楽しみ、ほかのお金ものこせました。', walletChange: -2 },
-    { id: 'volunteer', label: 'お手つだいで参加する', consequence: '給料はなくても、祭りを支える仕事ができました。' },
-    { id: 'skip', label: '今回は行かない', consequence: 'お金をのこし、家でちがう楽しみを見つけました。' },
+    { id: 'volunteer', label: 'お手つだいで参加する', consequence: 'げんきを1こ使い、祭りを支えてありがとうが2こふえました。', energyChange: -1, trustChange: 2 },
+    { id: 'skip', label: '今回は行かない', consequence: 'お金をのこし、家で休んでげんきが1こもどりました。', energyChange: 1 },
   ]},
 ]
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from './Icon'
-import { ShiftSimulator } from './ShiftSimulator'
+import { ArcadeShift } from './ArcadeShift'
 import type { Job, JobId, ShiftResult } from './types'
 import { WorkDelivery, WorkPhaseBar, WorkPreparation, type WorkPhase } from './WorkShift'
 import './workShift.css'
@@ -218,6 +218,6 @@ function LegacyMission({ job, onComplete }: { job: Job; onComplete: () => void }
   )
 }
 
-export function Mission({ job, week, day, skillLevel, demandBonus, onComplete }: { job: Job; week: number; day: number; skillLevel: number; demandBonus: number; onComplete: (result: ShiftResult) => void }) {
-  return <ShiftSimulator job={job} week={week} day={day} skillLevel={skillLevel} demandBonus={demandBonus} onComplete={onComplete} />
+export function Mission({ job, week, day, skillLevel, energyAssist, demandBonus, onComplete }: { job: Job; week: number; day: number; skillLevel: number; energyAssist: boolean; demandBonus: number; onComplete: (result: ShiftResult) => void }) {
+  return <ArcadeShift job={job} week={week} day={day} skillLevel={skillLevel} energyAssist={energyAssist} demandBonus={demandBonus} onComplete={onComplete} />
 }

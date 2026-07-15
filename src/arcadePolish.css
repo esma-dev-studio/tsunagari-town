@@ -1,0 +1,75 @@
+/* Keep draggable objects and their destinations in one clear workspace. */
+@media (min-width: 761px) {
+  .waste-sorting-stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 285px;
+    grid-template-areas:
+      'instruction instruction'
+      'town bins'
+      'meter bins'
+      'note bins';
+    gap: 12px 18px;
+    align-items: start;
+  }
+  .waste-sorting-stage > .waste-instruction { grid-area: instruction; }
+  .waste-sorting-stage > .waste-town { grid-area: town; }
+  .waste-sorting-stage > .waste-clean-meter { grid-area: meter; margin: 2px 0 0; }
+  .waste-sorting-stage > .waste-bins { grid-area: bins; grid-template-columns: 1fr; align-self: stretch; }
+  .waste-sorting-stage > .waste-selection-note { grid-area: note; }
+  .waste-sorting-stage .waste-bin { min-height: 142px; }
+}
+
+@media (max-width: 760px) {
+  .waste-sorting-stage {
+    display: grid;
+    grid-template-areas: 'instruction' 'bins' 'town' 'meter' 'note';
+  }
+  .waste-sorting-stage > .waste-instruction { grid-area: instruction; }
+  .waste-sorting-stage > .waste-town { grid-area: town; }
+  .waste-sorting-stage > .waste-clean-meter { grid-area: meter; }
+  .waste-sorting-stage > .waste-selection-note { grid-area: note; }
+  .waste-sorting-stage > .waste-bins {
+    grid-area: bins;
+    position: sticky;
+    z-index: 28;
+    top: 86px;
+    margin: 0 0 12px;
+    padding: 9px;
+    border: 2px solid #b8c9b7;
+    border-radius: 16px;
+    background: rgba(247, 252, 242, .96);
+    box-shadow: 0 8px 20px rgba(23, 50, 77, .14);
+  }
+  .waste-sorting-stage .waste-bin { min-height: 110px; }
+}
+
+@media (max-width: 460px) {
+  .waste-trash-item { width: 69px; min-height: 63px; }
+  .waste-sorting-stage .waste-trash-label { display: block; font-size: .7rem; line-height: 1.1; }
+  .waste-sorting-stage > .waste-bins { top: 78px; padding: 6px; }
+  .waste-sorting-stage .waste-bin { min-height: 93px; }
+  .waste-sorting-stage .waste-bin-emoji { font-size: 1.65rem; }
+}
+
+@media (max-width: 760px) {
+  .bakery-workbench, .bakery-knead-stage, .bakery-oven-stage { grid-template-columns: 1fr; }
+  .bakery-ingredient-grid { grid-template-columns: repeat(2, 1fr); }
+  .bakery-bowl-zone { min-height: 290px; }
+  .bakery-dough-surface { min-height: 340px; }
+  .bakery-oven-scene { min-height: 340px; padding: 48px 25px 30px; }
+  .bakery-oven-window { min-height: 235px; }
+}
+
+@media (max-width: 480px) {
+  .arcade-game { padding: 15px 11px 28px; }
+  .arcade-game-header { min-height: 66px; }
+  .arcade-game-header h2 { font-size: 1.3rem; }
+  .bakery-title-group { gap: 8px; }
+  .bakery-job-badge { width: 48px; height: 48px; font-size: 1.6rem; }
+  .arcade-correction-counter { min-width: 90px; padding: 8px; }
+  .arcade-step { flex-direction: column; gap: 3px; font-size: .75rem; }
+  .arcade-step-icon { width: 42px; height: 42px; }
+  .arcade-step:not(:last-child)::after { top: 21px; }
+  .bakery-ingredient-card { min-height: 100px; }
+  .bakery-oven-button { min-height: 88px; }
+}

@@ -62,7 +62,24 @@ export interface EventResponse {
   consequence: string
   walletChange?: number
   savingsChange?: number
+  energyChange?: number
+  timeMinutesChange?: number
+  trustChange?: number
   usesSupport?: boolean
+}
+
+export interface EventResourceSnapshot {
+  wallet: number
+  savings: number
+  energy: number
+  clockMinutes: number
+  townTrust: number
+}
+
+export interface EventOutcome {
+  responseId: string
+  before: EventResourceSnapshot
+  after: EventResourceSnapshot
 }
 
 export interface UnexpectedEvent {
@@ -109,6 +126,10 @@ export interface MoneyRecord {
 
 export type TownNeed = 'food' | 'transport' | 'cleanliness'
 
+export type TaxAllocation = Record<TownNeed, number>
+
+export type MoneyDecision = 'buy' | 'save' | 'keep' | 'mixed'
+
 export interface ShiftResult {
   jobId: JobId
   basePay: number
@@ -141,6 +162,7 @@ export interface SimulationDayRecord {
   quality: number
   trustGained: number
   townNeed: TownNeed
+  moneyDecision?: MoneyDecision
 }
 
 export interface SimulationState {
@@ -157,6 +179,7 @@ export interface SimulationState {
   jobStats: Record<JobId, JobStat>
   workedToday: boolean
   shoppedToday: boolean
+  moneyDecision: MoneyDecision | null
   dayStartWallet: number
   dayStartSavings: number
   lastShift: ShiftResult | null
@@ -185,6 +208,7 @@ export interface GameState {
   spendingReason: string
   eventId: string | null
   eventResponseId: string | null
+  eventOutcome: EventOutcome | null
   budget: Record<string, number>
   reflections: Record<string, string>
   weekComplete: boolean

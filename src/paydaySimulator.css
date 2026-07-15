@@ -1,26 +1,963 @@
-.payday-simulator { padding-top: 38px; }
-.payday-heading { display: flex; justify-content: space-between; align-items: center; gap: 30px; margin-bottom: 24px; }.payday-heading h1 { margin: 7px 0 9px; font-size: clamp(2.3rem, 5vw, 4.1rem); }.payday-heading p { margin: 0; color: var(--muted); }.payday-timecard { min-width: 190px; padding: 20px; display: grid; grid-template-columns: 1fr 42px; align-items: center; color: white; background: var(--navy); border: 7px double #d0b45a; box-shadow: 7px 8px 0 #ddd5c2; transform: rotate(2deg); }.payday-timecard span { font-weight: 900; }.payday-timecard > svg { grid-column: 2; grid-row: 1 / 3; width: 37px; color: #83c696; }.payday-timecard strong, .payday-timecard small { grid-column: 1; }.payday-timecard small { color: #b9c8cf; }
-.payday-steps { list-style: none; margin: 0; padding: 15px 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: white; border: 1px solid var(--line); }.payday-steps li { display: flex; align-items: center; justify-content: center; gap: 9px; color: #8d9b96; font-weight: 900; }.payday-steps li > span { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; color: white; background: #aab5b1; }.payday-steps li svg { width: 21px; }.payday-steps li.is-current { color: var(--navy); }.payday-steps li.is-current > span { background: var(--orange); box-shadow: 0 0 0 5px var(--orange-soft); }.payday-steps li.is-done > span { background: var(--green); }
-.pay-counter { min-height: 660px; display: grid; grid-template-columns: minmax(330px, .78fr) 1.22fr; color: var(--navy); background: #f6f2e8; border: 1px solid #d5d2c7; border-top: 0; box-shadow: var(--shadow); }
-.pay-clerk-scene { position: relative; min-height: 660px; overflow: hidden; background: linear-gradient(#dcebef 0 62%, #dfd3ba 62%); }.pay-window-sign { min-height: 76px; padding: 16px; display: flex; justify-content: center; align-items: center; gap: 10px; color: white; background: var(--navy); font-weight: 900; }.pay-window-sign svg { width: 32px; color: #efc75e; }.pay-clerk { position: absolute; z-index: 2; left: calc(50% - 70px); top: 170px; width: 140px; height: 190px; }.pay-clerk i { position: absolute; left: 37px; width: 70px; height: 70px; border-radius: 50%; background: #ba7d60; box-shadow: inset 0 11px 0 #263f52; }.pay-clerk b { position: absolute; left: 24px; top: 72px; width: 96px; height: 120px; border-radius: 20px 20px 6px 6px; background: #4d7781; }.pay-clerk-scene blockquote { position: absolute; z-index: 3; left: 8%; right: 8%; top: 360px; margin: 0; padding: 17px; background: white; border-left: 6px solid var(--orange); font-weight: 900; text-align: center; }.pay-counter-desk { position: absolute; z-index: 4; left: 5%; right: 5%; bottom: 5%; height: 130px; background: #8d6c4d; border-top: 18px solid #b48c64; }
-.pay-workspace { padding: clamp(25px, 5vw, 55px); display: grid; grid-template-columns: .8fr 1.2fr; gap: 18px; align-content: start; }.salary-slip { padding: 17px; background: #fffdf4; border: 1px dashed #aaa493; box-shadow: 4px 5px 0 #ded7c5; }.salary-slip > span { display: block; padding-bottom: 10px; border-bottom: 1px dashed #aaa493; font-weight: 900; }.salary-slip dl { margin: 10px 0 0; display: grid; gap: 7px; }.salary-slip dl div { display: flex; justify-content: space-between; gap: 12px; }.salary-slip dd { margin: 0; font-weight: 900; }.salary-slip dl div:last-child { padding-top: 7px; border-top: 2px solid var(--navy); color: var(--green); }
-.salary-tray { min-height: 180px; padding: 18px; background: #dfd2b4; border: 8px solid #9a7851; box-shadow: inset 0 0 0 3px #c3a57d; }.salary-tray > span { display: block; margin-bottom: 12px; font-weight: 900; text-align: center; }.salary-tray > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; }.salary-tray i { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; color: #9c6d1e; background: #f2cf64; border: 3px solid #bd862b; transition: transform .6s ease, opacity .6s ease; }.salary-tray svg { width: 24px; }.salary-tray i.is-tax { transform: translateY(45px) scale(.7); color: white; background: #52785d; border-color: #3b6148; }.salary-tray i.is-wallet { transform: translateX(35px) translateY(35px) scale(.72); opacity: .38; }.salary-tray i.is-wallet:nth-child(-n+2) { transform: translateX(-70px) translateY(30px) scale(.65); background: #52785d; border-color: #3b6148; }
-.payday-action { grid-column: 1 / -1; min-height: 310px; padding: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: white; border: 1px solid var(--line); }.payday-action h2 { margin: 4px 0 8px; font-size: clamp(1.7rem, 3vw, 2.6rem); }.payday-action > p { max-width: 680px; margin: 0 0 22px; color: var(--muted); }.tax-drop-zone, .wallet-drop-zone { min-width: min(440px, 100%); margin: 4px 0 22px; padding: 18px; display: grid; grid-template-columns: 54px 1fr auto; align-items: center; gap: 13px; text-align: left; color: white; background: var(--green); border: 5px double white; outline: 4px solid var(--green); }.tax-drop-zone svg, .wallet-drop-zone svg { width: 43px; }.tax-drop-zone small, .tax-drop-zone strong, .wallet-drop-zone small, .wallet-drop-zone strong { display: block; }.tax-drop-zone small, .wallet-drop-zone small { opacity: .78; }.tax-drop-zone b { font-size: 1.3rem; }.wallet-drop-zone { background: var(--blue); outline-color: var(--blue); }.payday-success { display: flex; align-items: center; gap: 16px; }.payday-success > svg { width: 72px; height: 72px; padding: 15px; border-radius: 50%; color: white; background: var(--green); }.payday-success small { font-size: 1rem; color: var(--green); font-weight: 900; }.payday-success h2 { margin: 3px 0; }.payday-learn { margin-top: 20px; }
-
-@media (max-width: 900px) {
-  .pay-counter { grid-template-columns: 280px 1fr; }.pay-workspace { grid-template-columns: 1fr; }.payday-action { grid-column: 1; }.salary-tray { min-height: 160px; }
+.payday-simulator {
+  padding-top: 32px;
 }
 
-@media (max-width: 760px) {
-  .payday-simulator { padding-top: 20px; }.payday-heading { align-items: flex-start; }.payday-timecard { min-width: 140px; padding: 13px; }.payday-heading h1 { font-size: 2.4rem; }.payday-steps { padding: 12px 7px; }.payday-steps li { gap: 5px; font-size: .72rem; }.payday-steps li > span { width: 31px; height: 31px; }
-  .pay-counter { grid-template-columns: 1fr; }.pay-clerk-scene { min-height: 440px; }.pay-clerk { top: 105px; transform: scale(.75); transform-origin: top center; }.pay-clerk-scene blockquote { top: 260px; }.pay-counter-desk { height: 100px; }.pay-workspace { padding: 18px; }.salary-slip, .salary-tray { min-height: 0; }.payday-action { min-height: 285px; padding: 22px 15px; }
+.payday-heading {
+  margin-bottom: 22px;
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
 }
 
-@media (max-width: 430px) {
-  .payday-heading { display: grid; grid-template-columns: 1fr 105px; }.payday-heading h1 { font-size: 2rem; }.payday-timecard { min-width: 0; padding: 10px; transform: none; }.payday-timecard > svg { width: 28px; }.payday-timecard small { display: none; }.payday-steps li { flex-direction: column; text-align: center; font-size: .6rem; }.payday-steps li > span { width: 28px; height: 28px; }
-  .salary-tray i { width: 32px; height: 32px; }.salary-tray svg { width: 20px; }.payday-action .button { width: 100%; }.tax-drop-zone, .wallet-drop-zone { grid-template-columns: 43px 1fr; }.tax-drop-zone b { grid-column: 1 / -1; text-align: center; }.payday-success { flex-direction: column; }.payday-success > svg { width: 60px; height: 60px; }
+.payday-heading h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+}
+
+.payday-heading .eyebrow {
+  margin-bottom: 6px;
+}
+
+.payday-job-stamp {
+  width: 76px;
+  height: 76px;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  color: white;
+  background: var(--navy);
+  box-shadow: 0 8px 0 #0d263b;
+  transform: rotate(-3deg);
+}
+
+.payday-job-stamp svg {
+  width: 42px;
+}
+
+.payday-gross-badge {
+  min-width: 150px;
+  padding: 12px 20px;
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: end;
+  column-gap: 8px;
+  color: #765216;
+  background: #ffe899;
+  border: 4px solid #d6a936;
+  border-radius: 18px;
+  box-shadow: 0 7px 0 #b78225;
+  text-align: center;
+}
+
+.payday-gross-badge span {
+  grid-column: 1 / -1;
+  font-size: .73rem;
+  font-weight: 900;
+}
+
+.payday-gross-badge strong {
+  justify-self: end;
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+.payday-gross-badge small {
+  align-self: end;
+  padding-bottom: 3px;
+  font-weight: 900;
+}
+
+.payday-game {
+  overflow: hidden;
+  background: #fffdf8;
+  border: 2px solid #d7d3c5;
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+}
+
+.payday-steps {
+  min-height: 72px;
+  padding: 12px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  color: #85928e;
+  background: #f1f3ef;
+  border-bottom: 1px solid var(--line);
+  font-weight: 900;
+}
+
+.payday-steps > span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.payday-steps > span > b {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: #aab4b0;
+}
+
+.payday-steps > span > b svg,
+.payday-steps > svg {
+  width: 22px;
+}
+
+.payday-steps > span.is-current {
+  color: var(--navy);
+}
+
+.payday-steps > span.is-current > b {
+  background: var(--orange);
+  box-shadow: 0 0 0 5px rgba(217, 133, 79, .2);
+}
+
+.payday-steps > span.is-done {
+  color: var(--green);
+}
+
+.payday-steps > span.is-done > b {
+  background: var(--green);
+}
+
+.payday-message {
+  min-height: 82px;
+  padding: 14px 24px;
+  display: grid;
+  grid-template-columns: 45px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  color: var(--navy);
+  background: #fff4d2;
+  border-bottom: 1px solid #ead598;
+}
+
+.payday-message > span {
+  grid-row: 1 / 3;
+  font-size: 2rem;
+}
+
+.payday-message strong {
+  font-size: 1.2rem;
+}
+
+.payday-message small {
+  color: #6d6757;
+  font-weight: 800;
+}
+
+.payday-board {
+  padding: clamp(18px, 3vw, 32px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px minmax(330px, .88fr);
+  align-items: stretch;
+  gap: 12px;
+  background:
+    linear-gradient(rgba(255, 255, 255, .72), rgba(255, 255, 255, .72)),
+    repeating-linear-gradient(90deg, #d8e8ec 0 52px, #c8dce1 53px 55px);
+}
+
+.payday-tray-panel {
+  min-height: 390px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  background: #f4e8cd;
+  border: 8px solid #95734f;
+  border-radius: 22px;
+  box-shadow: inset 0 0 0 4px #c9aa7e, 0 8px 0 rgba(76, 57, 39, .18);
+}
+
+.payday-panel-label {
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #523d2b;
+  font-weight: 900;
+}
+
+.payday-panel-label strong {
+  padding: 5px 11px;
+  border-radius: 999px;
+  color: white;
+  background: #785b40;
+}
+
+.payday-coin-tray {
+  flex: 1;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(52px, 1fr));
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  border: 3px dashed rgba(89, 63, 38, .28);
+  border-radius: 16px;
+  background: rgba(255, 253, 239, .65);
+}
+
+.payday-coin {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 4px solid #b97f1f;
+  border-radius: 50%;
+  color: #8b5d16;
+  background: #f5d15d;
+  box-shadow: inset 0 0 0 3px #ffe99a, 0 6px 0 #9d6919;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.payday-coin:hover:not(:disabled) {
+  transform: translateY(-3px) rotate(-3deg);
+  box-shadow: inset 0 0 0 3px #ffe99a, 0 9px 0 #9d6919;
+}
+
+.payday-coin:active,
+.payday-coin.is-dragging {
+  cursor: grabbing;
+  box-shadow: inset 0 0 0 3px #fff0ad, 0 12px 18px rgba(61, 42, 20, .26);
+}
+
+.payday-coin:disabled {
+  cursor: default;
+}
+
+.payday-coin svg {
+  width: 38px;
+}
+
+.payday-coin span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #724812;
+  font-size: .8rem;
+  font-weight: 900;
+}
+
+.payday-board-arrow {
+  display: grid;
+  place-items: center;
+  color: var(--orange-dark);
+}
+
+.payday-board-arrow svg {
+  width: 42px;
+  height: 42px;
+  padding: 8px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 4px 10px rgba(23, 50, 77, .12);
+}
+
+.payday-targets {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 1.15fr .85fr;
+  gap: 16px;
+}
+
+.payday-tax-box,
+.payday-wallet-target {
+  position: relative;
+  min-height: 168px;
+  padding: 56px 18px 18px;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  overflow: hidden;
+  color: white;
+  background: #6c7b73;
+  border: 6px solid #53635b;
+  border-radius: 20px;
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .28), 0 8px 0 rgba(40, 64, 51, .24);
+  opacity: .62;
+  transition: transform .25s ease, opacity .25s ease, background .25s ease;
+}
+
+.payday-tax-box.is-active,
+.payday-tax-box.is-complete {
+  background: var(--green);
+  border-color: #355d43;
+  opacity: 1;
+}
+
+.payday-wallet-target {
+  min-height: 145px;
+  padding-top: 18px;
+  background: #64798a;
+  border-color: #4e6272;
+}
+
+.payday-wallet-target.is-active,
+.payday-wallet-target.is-complete {
+  background: var(--blue);
+  border-color: #2b5d86;
+  opacity: 1;
+}
+
+.payday-tax-box.is-active,
+.payday-wallet-target.is-active {
+  animation: payday-target-pulse 1.15s ease-in-out 3;
+}
+
+.payday-tax-box.is-complete,
+.payday-wallet-target.is-complete {
+  transform: scale(1.015);
+}
+
+.payday-tax-box > svg,
+.payday-wallet-target > svg {
+  width: 48px;
+}
+
+.payday-tax-box small,
+.payday-tax-box strong,
+.payday-wallet-target small,
+.payday-wallet-target strong {
+  display: block;
+}
+
+.payday-tax-box small,
+.payday-wallet-target small {
+  opacity: .82;
+  font-size: .68rem;
+  font-weight: 800;
+}
+
+.payday-tax-box > b,
+.payday-wallet-target > b {
+  font-size: 1.2rem;
+  white-space: nowrap;
+}
+
+.payday-town-services {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 47px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: rgba(255, 255, 255, .92);
+  border-bottom: 3px dashed rgba(50, 82, 60, .34);
+  font-size: 1.45rem;
+}
+
+.payday-tax-box:not(.is-complete) .payday-town-services span {
+  filter: grayscale(1);
+  opacity: .5;
+}
+
+.payday-tax-box.is-complete .payday-town-services span {
+  animation: payday-service-pop .45s ease both;
+}
+
+.payday-tax-box.is-complete .payday-town-services span:nth-child(2) {
+  animation-delay: .08s;
+}
+
+.payday-tax-box.is-complete .payday-town-services span:nth-child(3) {
+  animation-delay: .16s;
+}
+
+.payday-box-coins {
+  position: absolute;
+  left: 16px;
+  bottom: 8px;
+  display: flex;
+  gap: 4px;
+}
+
+.payday-box-coins i {
+  width: 29px;
+  height: 29px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #c18d2f;
+  border-radius: 50%;
+  color: #8a611e;
+  background: var(--yellow);
+  animation: payday-coin-drop .38s ease both;
+}
+
+.payday-box-coins svg {
+  width: 18px;
+}
+
+.payday-take-home-pile {
+  position: relative;
+  flex: 1;
+  min-height: 280px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  border: 4px dashed #b17c2b;
+  border-radius: 18px;
+  color: #5e421b;
+  background: #fff6c9;
+  box-shadow: 0 7px 0 #b99356;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.payday-take-home-pile:hover {
+  background: #fff0a2;
+}
+
+.payday-take-home-pile.is-dragging {
+  cursor: grabbing;
+  box-shadow: 0 18px 28px rgba(61, 42, 20, .28);
+}
+
+.payday-take-home-pile > strong {
+  font-size: 1.15rem;
+  text-align: center;
+}
+
+.payday-pile-coins {
+  width: min(310px, 100%);
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 7px;
+}
+
+.payday-pile-coins i {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 3px solid #b97f1f;
+  border-radius: 50%;
+  color: #8b5d16;
+  background: #f5d15d;
+  box-shadow: inset 0 0 0 2px #ffe99a, 0 3px 0 #9d6919;
+}
+
+.payday-pile-coins svg {
+  width: 70%;
+}
+
+.payday-empty-tray {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  color: var(--green);
+  background: rgba(255, 255, 255, .45);
+  border: 3px dashed rgba(89, 63, 38, .28);
+  border-radius: 16px;
+  animation: payday-finish-pop .5s ease both;
+}
+
+.payday-empty-tray svg {
+  width: 56px;
+  height: 56px;
+  padding: 12px;
+  border-radius: 50%;
+  color: white;
+  background: var(--green);
+}
+
+.payday-empty-tray strong {
+  font-size: 1.25rem;
+}
+
+.payday-wallet-burst {
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  color: #fff5b7;
+  font-size: 1.05rem;
+  font-weight: 900;
+  transform: translateX(-50%);
+  animation: payday-wallet-burst .7s ease both;
+}
+
+.payday-equation {
+  min-height: 116px;
+  padding: 16px 24px;
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) auto minmax(110px, 1fr) auto minmax(145px, 1fr);
+  align-items: center;
+  gap: 14px;
+  color: var(--navy);
+  background: white;
+  border-top: 1px solid var(--line);
+}
+
+.payday-equation > span {
+  min-height: 75px;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  border-radius: 14px;
+  background: #edf0ed;
+}
+
+.payday-equation > span.is-take-home {
+  color: white;
+  background: var(--blue);
+}
+
+.payday-equation small {
+  font-size: .7rem;
+  font-weight: 900;
+}
+
+.payday-equation strong {
+  font-size: 2rem;
+}
+
+.payday-equation > b {
+  font-size: 1.7rem;
+}
+
+.payday-finish {
+  padding: 22px 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  color: var(--navy);
+  background: #eaf5eb;
+  border-top: 3px solid #b8d6be;
+  animation: payday-finish-pop .5s ease both;
+}
+
+.payday-finish > div {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 14px;
+}
+
+.payday-finish > div > span {
+  grid-row: 1 / 3;
+  font-size: 2.8rem;
+}
+
+.payday-finish p,
+.payday-finish h2 {
+  margin: 0;
+}
+
+.payday-finish p {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.payday-finish h2 {
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+}
+
+@keyframes payday-target-pulse {
+  50% { transform: scale(1.025); box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .28), 0 0 0 7px rgba(240, 207, 105, .55), 0 8px 0 rgba(40, 64, 51, .24); }
+}
+
+@keyframes payday-coin-drop {
+  from { transform: translateY(-24px) scale(.55); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes payday-service-pop {
+  from { transform: scale(.6); }
+  70% { transform: scale(1.25); }
+  to { transform: scale(1); }
+}
+
+@keyframes payday-wallet-burst {
+  from { transform: translate(-50%, 18px) scale(.6); opacity: 0; }
+  60% { transform: translate(-50%, -4px) scale(1.18); opacity: 1; }
+  to { transform: translate(-50%, 0) scale(1); opacity: 1; }
+}
+
+@keyframes payday-finish-pop {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@media (max-width: 850px) {
+  .payday-board {
+    grid-template-columns: minmax(0, 1fr) 38px minmax(285px, .9fr);
+  }
+
+  .payday-coin-tray {
+    grid-template-columns: repeat(4, minmax(48px, 1fr));
+  }
+
+  .payday-coin {
+    width: 54px;
+    height: 54px;
+  }
+
+  .payday-tax-box,
+  .payday-wallet-target {
+    grid-template-columns: 45px minmax(0, 1fr);
+  }
+
+  .payday-tax-box > b,
+  .payday-wallet-target > b {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+}
+
+@media (max-width: 680px) {
+  .payday-simulator {
+    width: min(100% - 24px, 1180px);
+    padding-top: 20px;
+  }
+
+  .payday-heading {
+    grid-template-columns: 58px minmax(0, 1fr) 94px;
+    gap: 10px;
+  }
+
+  .payday-job-stamp {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    box-shadow: 0 5px 0 #0d263b;
+  }
+
+  .payday-job-stamp svg {
+    width: 29px;
+  }
+
+  .payday-heading h1 {
+    font-size: clamp(1.55rem, 7.5vw, 2.15rem);
+  }
+
+  .payday-heading .eyebrow {
+    font-size: .63rem;
+    letter-spacing: .05em;
+  }
+
+  .payday-gross-badge {
+    min-width: 0;
+    padding: 8px;
+    column-gap: 4px;
+    border-width: 3px;
+    border-radius: 14px;
+    box-shadow: 0 5px 0 #b78225;
+  }
+
+  .payday-gross-badge strong {
+    font-size: 1.65rem;
+  }
+
+  .payday-gross-badge small,
+  .payday-gross-badge span {
+    font-size: .58rem;
+  }
+
+  .payday-game {
+    border-radius: 18px;
+  }
+
+  .payday-steps {
+    min-height: 64px;
+    padding: 9px 10px;
+    gap: 8px;
+    font-size: .7rem;
+  }
+
+  .payday-steps > span {
+    gap: 5px;
+  }
+
+  .payday-steps > span > b {
+    width: 31px;
+    height: 31px;
+  }
+
+  .payday-steps > span > b svg,
+  .payday-steps > svg {
+    width: 17px;
+  }
+
+  .payday-message {
+    min-height: 74px;
+    padding: 11px 14px;
+    grid-template-columns: 36px minmax(0, 1fr);
+    column-gap: 8px;
+  }
+
+  .payday-message > span {
+    font-size: 1.6rem;
+  }
+
+  .payday-message strong {
+    font-size: 1rem;
+  }
+
+  .payday-message small {
+    font-size: .65rem;
+  }
+
+  .payday-board {
+    padding: 14px;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .payday-board-arrow {
+    height: 35px;
+    transform: rotate(90deg);
+  }
+
+  .payday-board-arrow svg {
+    width: 35px;
+    height: 35px;
+    padding: 6px;
+  }
+
+  .payday-tray-panel {
+    min-height: 330px;
+    padding: 13px;
+    border-width: 6px;
+    border-radius: 18px;
+  }
+
+  .payday-coin-tray {
+    padding: 12px;
+    grid-template-columns: repeat(5, minmax(42px, 1fr));
+    gap: 8px;
+  }
+
+  .payday-coin {
+    width: 48px;
+    height: 48px;
+    border-width: 3px;
+    box-shadow: inset 0 0 0 2px #ffe99a, 0 4px 0 #9d6919;
+  }
+
+  .payday-coin svg {
+    width: 30px;
+  }
+
+  .payday-targets {
+    grid-template-rows: none;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .payday-tax-box,
+  .payday-wallet-target {
+    min-height: 175px;
+    padding: 51px 10px 12px;
+    grid-template-columns: 1fr;
+    place-items: center;
+    gap: 5px;
+    border-width: 5px;
+    text-align: center;
+  }
+
+  .payday-wallet-target {
+    padding-top: 12px;
+  }
+
+  .payday-tax-box > svg,
+  .payday-wallet-target > svg {
+    width: 38px;
+  }
+
+  .payday-tax-box > b,
+  .payday-wallet-target > b {
+    grid-column: auto;
+    font-size: 1rem;
+  }
+
+  .payday-tax-box small,
+  .payday-wallet-target small {
+    font-size: .55rem;
+  }
+
+  .payday-town-services {
+    height: 42px;
+    font-size: 1.15rem;
+  }
+
+  .payday-box-coins {
+    left: 7px;
+    bottom: 5px;
+  }
+
+  .payday-box-coins i {
+    width: 24px;
+    height: 24px;
+  }
+
+  .payday-take-home-pile {
+    min-height: 255px;
+  }
+
+  .payday-equation {
+    min-height: 93px;
+    padding: 12px;
+    grid-template-columns: minmax(72px, 1fr) auto minmax(72px, 1fr) auto minmax(92px, 1.1fr);
+    gap: 5px;
+  }
+
+  .payday-equation > span {
+    min-height: 65px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0;
+    text-align: center;
+  }
+
+  .payday-equation small {
+    font-size: .53rem;
+  }
+
+  .payday-equation strong {
+    font-size: 1.45rem;
+  }
+
+  .payday-equation > b {
+    font-size: 1.1rem;
+  }
+
+  .payday-finish {
+    padding: 18px 14px;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .payday-finish > div {
+    grid-template-columns: 46px minmax(0, 1fr);
+    column-gap: 9px;
+  }
+
+  .payday-finish > div > span {
+    font-size: 2.15rem;
+  }
+
+  .payday-finish p {
+    font-size: .75rem;
+  }
+
+  .payday-finish .button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 390px) {
+  .payday-heading {
+    grid-template-columns: minmax(0, 1fr) 86px;
+  }
+
+  .payday-job-stamp {
+    display: none;
+  }
+
+  .payday-coin-tray {
+    grid-template-columns: repeat(4, minmax(43px, 1fr));
+  }
+
+  .payday-coin {
+    width: 46px;
+    height: 46px;
+  }
+
+  .payday-tray-panel {
+    min-height: 350px;
+  }
+
+  .payday-targets {
+    grid-template-columns: 1fr;
+  }
+
+  .payday-tax-box,
+  .payday-wallet-target {
+    min-height: 150px;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    text-align: left;
+  }
+
+  .payday-tax-box {
+    padding: 50px 12px 12px;
+  }
+
+  .payday-wallet-target {
+    padding: 12px;
+  }
+
+  .payday-tax-box > b,
+  .payday-wallet-target > b {
+    grid-column: auto;
+  }
+
+  .payday-equation small {
+    font-size: .48rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .salary-tray i { transition: none; }
+  .payday-coin,
+  .payday-tax-box,
+  .payday-wallet-target {
+    transition: none;
+  }
+
+  .payday-tax-box.is-active,
+  .payday-wallet-target.is-active,
+  .payday-tax-box.is-complete .payday-town-services span,
+  .payday-box-coins i,
+  .payday-wallet-burst,
+  .payday-empty-tray,
+  .payday-finish {
+    animation: none;
+  }
+}
+
+.payday-tax-box small,
+.payday-wallet-target small,
+.payday-equation small {
+  font-size: .75rem;
+}
+
+@media (max-width: 390px) {
+  .payday-equation {
+    padding: 10px 8px;
+    grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr) 16px minmax(0, 1.15fr);
+    gap: 3px;
+  }
+  .payday-equation > span {
+    min-width: 0;
+    padding: 5px 3px;
+  }
+  .payday-equation small {
+    font-size: .75rem;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
 }

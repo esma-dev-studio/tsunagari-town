@@ -1,0 +1,24 @@
+.screen-mission .stage-bar,
+.screen-mission .mobile-progress,
+.screen-mission .task-guide,
+.screen-mission > .simulation-hud,
+.screen-payslip > .simulation-hud {
+  display: none;
+}
+
+.screen-mission .arcade-shift {
+  margin-top: 16px;
+}
+
+.opening-map {
+  overflow: hidden;
+}
+
+@media (max-width: 760px) {
+  .screen-mission .app-header {
+    position: relative;
+  }
+  .screen-mission .arcade-shift {
+    margin-top: 0;
+  }
+}

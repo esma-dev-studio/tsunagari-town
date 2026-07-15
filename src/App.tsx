@@ -17,12 +17,11 @@ import { MapScene, facilities } from './MapScene'
 import { Mission } from './Mission'
 import { PaydaySimulator } from './PaydaySimulator'
 import { MoneyBook } from './MoneyBook'
-import { demandBonusFor } from './simulationData'
-import { readShiftProgress } from './shiftProgress'
+import { demandBonusFor, formatGameTime } from './simulationData'
 import { SpendSimulator } from './SpendSimulator'
 import { DayEndSimulator, SimulationHUD, TownSimulator, WeekReport } from './TownSimulator'
 import { JobBriefing, WorkplaceCenter } from './WorkplaceCenter'
-import type { GameState, Job, JobId, Screen, SpendingRecord, TownNeed } from './types'
+import type { EventOutcome, EventResponse, GameState, Job, JobId, Screen, SpendingRecord, TaxAllocation, TownNeed } from './types'
 import { useGame } from './useGame'
 
 const simulationScreens: Screen[] = ['town', 'workplace', 'job', 'mission', 'payslip', 'spend', 'event', 'day-end', 'week-report']
@@ -43,7 +42,7 @@ const screenTitles: Partial<Record<Screen, string>> = {
   map: 'つながりタウン', problem: '街の困りごと', job: '仕事をえらぶ', mission: '仕事ミッション',
   payslip: '給料のお知らせ', spend: 'お金の使い方', event: '予想外の出来事', budget: '街の予算会議',
   'day-end': '今日のきろく', 'week-report': '3日間のせいせき',
-  flow: 'お金の循環', reflection: '一週間の振り返り', encyclopedia: '仕事図鑑', parent: '保護者の方へ',
+  flow: 'お金の循環', reflection: '3日間の振り返り', encyclopedia: '仕事図鑑', parent: '保護者の方へ',
 }
 
 function speak(text: string) {
@@ -59,26 +58,29 @@ function AppHeader({ screen, state, onHome, onMap, onBack }: { screen: Screen; s
   if (screen === 'opening') return null
   const title = screenTitles[screen] ?? 'お金と仕事の街'
   const stageIndex = stages.findIndex((stage) => stage.screens.includes(screen))
+  const locksNavigation = screen === 'mission' || screen === 'payslip'
   return (
     <>
       <header className="app-header">
-        <button type="button" className="brand" onClick={onHome} aria-label="ホームへ">
+        <button type="button" className="brand" onClick={onHome} disabled={locksNavigation} aria-label="ホームへ">
           <span className="brand-mark"><Icon name="community" /></span>
           <span><small>お金と仕事の街</small><strong>つながりタウン</strong></span>
         </button>
         <div className="header-title">{title}</div>
         <nav className="header-actions" aria-label="いつでも使えるメニュー">
-          {stageScreens.includes(screen) && <button type="button" className="icon-button back-button" onClick={onBack} aria-label="前の画面にもどる"><Icon name="back" /></button>}
+          {!locksNavigation && stageScreens.includes(screen) && <button type="button" className="icon-button back-button" onClick={onBack} aria-label="前の画面にもどる"><Icon name="back" /></button>}
           <button type="button" className="icon-button" onClick={() => speak(`${title}。画面の文を、ゆっくり読んで進めよう。`)} aria-label="画面の名前を読み上げる"><Icon name="speaker" /></button>
-          <button type="button" className="icon-button" onClick={onMap} aria-label="街の地図へ"><Icon name="map" /></button>
-          <button type="button" className="icon-button" onClick={onHome} aria-label="ホームへ"><Icon name="home" /></button>
+          {!locksNavigation && <>
+            <button type="button" className="icon-button" onClick={onMap} aria-label="街の地図へ"><Icon name="map" /></button>
+            <button type="button" className="icon-button" onClick={onHome} aria-label="ホームへ"><Icon name="home" /></button>
+          </>}
         </nav>
       </header>
       {stageIndex >= 0 && <div className="stage-bar" aria-label={`今は${stages[stageIndex].label}のステップ`}>
-        <div className="stage-meta"><span>街の1週間</span><strong>{stageIndex + 1} / {stages.length}</strong></div>
+        <div className="stage-meta"><span>街の3日間</span><strong>{stageIndex + 1} / {stages.length}</strong></div>
         <ol>{stages.map((stage, index) => <li key={stage.label} className={index < stageIndex ? 'is-done' : index === stageIndex ? 'is-current' : ''}><span>{index < stageIndex ? <Icon name="check" /> : index + 1}</span><b>{stage.label}</b></li>)}</ol>
       </div>}
-      <div className="mobile-progress" style={{ '--progress': `${Math.max(0, ((stageIndex + 1) / stages.length) * 100)}%` } as React.CSSProperties}><span>{stageIndex >= 0 ? stages[stageIndex].label : title}</span><b>{simulationScreens.includes(screen) ? `${state.simulation.day}日目` : `${state.week}週目`}</b></div>
+      <div className="mobile-progress" style={{ '--progress': `${Math.max(0, ((stageIndex + 1) / stages.length) * 100)}%` } as React.CSSProperties}><span>{stageIndex >= 0 ? stages[stageIndex].label : title}</span><b>{simulationScreens.includes(screen) ? `${state.simulation.day}日目` : `第${state.week}回`}</b></div>
       <TaskGuide screen={screen} />
     </>
   )
@@ -94,8 +96,8 @@ function Opening({ hasProgress, canContinue, weekComplete, onStart, onContinue }
           <div className="guide-speech"><small>まちの あんない人「つなぐ」</small><strong>こまっている人を<br />いっしょに たすけよう！</strong></div>
         </div>
         <p className="eyebrow">3日間、じぶんで街を うごかそう</p>
-        <h1>はたらく・かせぐ・くらす</h1>
-        <p className="opening-lead">時間・げんき・お金を見ながら、仕事とくらしをじぶんで決めるゲーム。</p>
+        <h1>はたらく<br />かせぐ・くらす</h1>
+        <p className="opening-lead">パンをこね、バスを運転し、町をそうじする。かせいだお金の使い道まで決めるゲーム。</p>
         <ChildJourney />
         <div className="opening-actions">
           {canContinue && <button type="button" className="button button-primary button-large" onClick={onContinue}>つづきから<Icon name="arrow" /></button>}
@@ -112,7 +114,7 @@ function Home({ state, onStart, onContinue, onNavigate, onReset }: { state: Game
   const earnedCoreJobs = coreJobIds.filter((id) => state.earnedJobCards.includes(id))
   return <main className="page-shell home-page">
     <section className="home-hero">
-      <div><span className="eyebrow">まちで しごとを たいけんしよう</span><h1>{state.weekComplete ? `${state.week}週目、おつかれさま！` : 'きょうは、どこで はたらく？'}</h1><p>せいふくをきて、いらいを受けて、おきゃくさんへ とどけよう。</p>
+      <div><span className="eyebrow">まちで しごとを たいけんしよう</span><h1>{state.weekComplete ? `第${state.week}回、おつかれさま！` : 'きょうは、どこで はたらく？'}</h1><p>つかむ・うごかす・長おし。自分の手で仕事をして、まちを元気にしよう。</p>
         <div className="action-row">{state.hasStarted && !state.weekComplete && <button type="button" className="button button-primary" onClick={onContinue}>つづきから<Icon name="arrow" /></button>}<button type="button" className="button button-secondary" onClick={onStart}>{state.weekComplete ? '3日レポートを見る' : 'はじめから'}<Icon name="play" /></button></div>
       </div>
       <div className="week-card"><span>これまでの仕事カード</span><strong>{earnedCoreJobs.length}<small> / 3</small></strong><div className="mini-job-row">{jobs.filter((job) => coreJobIds.includes(job.id)).map((job) => <span key={job.id} className={earnedCoreJobs.includes(job.id) ? 'is-earned' : ''} style={{ '--job-color': job.color } as React.CSSProperties}>{job.shortName.slice(0, 1)}</span>)}</div><small>点数ではなく、体験のきろくだよ。</small></div>
@@ -216,7 +218,7 @@ function SpendPage({ state, onSave }: { state: GameState; onSave: (records: Spen
   const toggle = (id: string, cost: number) => setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : total + cost <= available ? [...current, id] : current)
   const records = expenseChoices.filter((choice) => selected.includes(choice.id)).map((choice) => ({ choiceId: choice.id, amount: choice.cost }))
   return <main className="page-shell"><section className="spend-heading"><div><span className="eyebrow">STEP 5</span><h1>おさいふの {available}コイン、どうする？</h1><p>使う・ためる・のこすを、自分で決めよう。</p></div><div className="wallet-meter"><Icon name="wallet" /><span>えらんだ あとの おさいふ</span><strong>{left}<small>コイン</small></strong></div></section>
-    <section className="money-choice-overview" aria-label="えらんだ後のお金"><div><Icon name="wallet" /><span>おさいふに のこす<strong>{left}コイン</strong></span></div><div><Icon name="piggy" /><span>ちょきん<strong>{savingsBeforeChoice} → {savingsAfterChoice}コイン</strong></span></div><p>えらばずに のこしたお金は、つぎの週にも つかえるよ。</p></section>
+    <section className="money-choice-overview" aria-label="えらんだ後のお金"><div><Icon name="wallet" /><span>おさいふに のこす<strong>{left}コイン</strong></span></div><div><Icon name="piggy" /><span>ちょきん<strong>{savingsBeforeChoice} → {savingsAfterChoice}コイン</strong></span></div><p>えらばずに のこしたお金は、つぎの3日間にも つかえるよ。</p></section>
     <div className="expense-grid">{expenseChoices.map((choice) => { const active = selected.includes(choice.id); const unavailable = !active && choice.cost > left; const icon: Record<string, IconName> = { need: 'home', want: 'book', save: 'piggy', help: 'heart', shop: 'shop' }; return <button type="button" key={choice.id} disabled={unavailable} className={`expense-card ${active ? 'is-selected' : ''}`} onClick={() => toggle(choice.id, choice.cost)}><span className="expense-check">{active ? <Icon name="check" /> : <Icon name={icon[choice.category]} />}</span><span className="expense-category">{choice.childDescription}</span><strong>{choice.name}</strong><p>{choice.effect}</p><b>{choice.cost}コイン</b></button> })}</div>
     <p className="context-note"><Icon name="info" />必要な物は、人やその時のくらしによってちがいます。</p>
     <section className="reason-box"><label htmlFor="spending-reason">どうして、この使い方にしたの？</label><div className="reason-chips">{['今、必要だから', 'あとで安心したいから', 'だれかと分けたいから'].map((text) => <button type="button" key={text} onClick={() => setReason(text)}>{text}</button>)}</div><textarea id="spending-reason" value={reason} onChange={(event) => setReason(event.target.value)} maxLength={80} placeholder="自分の考えを書いてもいいよ" /></section>
@@ -224,12 +226,101 @@ function SpendPage({ state, onSave }: { state: GameState; onSave: (records: Spen
   </main>
 }
 
+type EventEffectView = { key: string; icon: IconName; label: string; value: string }
+
+const clampEventPreview = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
+
+function predictedEventEffects(response: EventResponse, state: GameState): EventEffectView[] {
+  const effects: EventEffectView[] = []
+  const walletChange = response.walletChange ?? 0
+  const savingsChange = response.savingsChange ?? 0
+  const energyChange = response.energyChange ?? 0
+  const timeChange = response.timeMinutesChange ?? 0
+  const trustChange = response.trustChange ?? 0
+  if (walletChange !== 0) effects.push({ key: 'wallet', icon: 'wallet', label: 'おさいふ', value: `${state.wallet} → ${Math.max(0, state.wallet + walletChange)}` })
+  if (savingsChange !== 0) effects.push({ key: 'savings', icon: 'piggy', label: 'ちょきん', value: `${state.savings} → ${Math.max(0, state.savings + savingsChange)}` })
+  if (energyChange !== 0) effects.push({
+    key: 'energy', icon: 'heart', label: 'げんき',
+    value: `${state.simulation.energy} → ${clampEventPreview(state.simulation.energy + energyChange, 0, state.simulation.maxEnergy)}`,
+  })
+  if (timeChange !== 0) effects.push({
+    key: 'time', icon: 'weather', label: 'じかん',
+    value: `${formatGameTime(state.simulation.clockMinutes)} → ${formatGameTime(clampEventPreview(state.simulation.clockMinutes + timeChange, 0, 23 * 60 + 59))}`,
+  })
+  if (trustChange !== 0) effects.push({
+    key: 'trust', icon: 'community', label: 'ありがとう',
+    value: `${state.simulation.townTrust} → ${clampEventPreview(state.simulation.townTrust + trustChange, 0, 99)}`,
+  })
+  return effects
+}
+
+function actualEventEffects(outcome: EventOutcome): EventEffectView[] {
+  const effects: EventEffectView[] = []
+  if (outcome.before.wallet !== outcome.after.wallet) effects.push({ key: 'wallet', icon: 'wallet', label: 'おさいふ', value: `${outcome.before.wallet} → ${outcome.after.wallet}` })
+  if (outcome.before.savings !== outcome.after.savings) effects.push({ key: 'savings', icon: 'piggy', label: 'ちょきん', value: `${outcome.before.savings} → ${outcome.after.savings}` })
+  if (outcome.before.energy !== outcome.after.energy) effects.push({ key: 'energy', icon: 'heart', label: 'げんき', value: `${outcome.before.energy} → ${outcome.after.energy}` })
+  if (outcome.before.clockMinutes !== outcome.after.clockMinutes) effects.push({
+    key: 'time', icon: 'weather', label: 'じかん',
+    value: `${formatGameTime(outcome.before.clockMinutes)} → ${formatGameTime(outcome.after.clockMinutes)}`,
+  })
+  if (outcome.before.townTrust !== outcome.after.townTrust) effects.push({
+    key: 'trust', icon: 'community', label: 'ありがとう', value: `${outcome.before.townTrust} → ${outcome.after.townTrust}`,
+  })
+  return effects
+}
+
 function EventPage({ state, onChoose, onNext }: { state: GameState; onChoose: (id: string) => void; onNext: () => void }) {
   const event = unexpectedEvents.find((item) => item.id === state.eventId) ?? unexpectedEvents[0]
   const chosen = event.availableResponses.find((response) => response.id === state.eventResponseId)
-  return <main className="page-shell narrow"><section className="event-card"><div className="event-visual"><Icon name={event.id === 'rain' ? 'weather' : event.id === 'family' ? 'heart' : event.id === 'festival' ? 'community' : 'tools'} /><span>予想外のできごと</span></div><h1>{event.title}</h1><p>{event.description}</p></section>
-    {!chosen ? <><div className="event-balances"><span><Icon name="wallet" />おさいふ <strong>{state.wallet}</strong></span><span><Icon name="piggy" />ちょきん <strong>{state.savings}</strong></span></div><h2 className="choice-heading">どうする？ お金が たりる方法から えらぼう。</h2><div className="response-list">{event.availableResponses.map((response) => { const walletCost = Math.max(0, -(response.walletChange ?? 0)); const savingsCost = Math.max(0, -(response.savingsChange ?? 0)); const unavailable = walletCost > state.wallet || savingsCost > state.savings; const costLabel = unavailable ? 'お金が たりないよ' : walletCost > 0 ? `おさいふ −${walletCost}` : savingsCost > 0 ? `ちょきん −${savingsCost}` : 'お金は へらない'; return <button type="button" key={response.id} disabled={unavailable} onClick={() => onChoose(response.id)}><span>{response.usesSupport ? <Icon name="community" /> : <Icon name="wallet" />}</span><span className="response-copy"><strong>{response.label}</strong><small>{costLabel}</small></span><Icon name="arrow" /></button> })}</div></> : <section className="consequence-box"><span className="eyebrow">あなたのえらび方</span><h2>{chosen.label}</h2><p>{chosen.consequence}</p><div className="event-result-money"><span><Icon name="wallet" />おさいふ {state.wallet}</span><span><Icon name="piggy" />ちょきん {state.savings}</span></div>{chosen.usesSupport && <div className="support-note"><Icon name="community" />一人だけで何とかせず、助けを使うことも大切です。</div>}<button type="button" className="button button-primary" onClick={onNext}>家へ かえって 今日をまとめる<Icon name="arrow" /></button></section>}
-  </main>
+  const outcome = chosen && state.eventOutcome?.responseId === chosen.id ? state.eventOutcome : null
+  const actualEffects = outcome ? actualEventEffects(outcome) : []
+  return (
+    <main className="page-shell narrow">
+      <section className="event-card">
+        <div className="event-visual"><Icon name={event.id === 'rain' ? 'weather' : event.id === 'family' ? 'heart' : event.id === 'festival' ? 'community' : 'tools'} /><span>よそう外の できごと</span></div>
+        <h1>{event.title}</h1><p>{event.description}</p>
+      </section>
+      {!chosen ? <>
+        <div className="event-balances" aria-label="いまの数字">
+          <span><Icon name="wallet" />おさいふ <strong>{state.wallet}</strong></span>
+          <span><Icon name="piggy" />ちょきん <strong>{state.savings}</strong></span>
+          <span><Icon name="heart" />げんき <strong>{state.simulation.energy}</strong></span>
+          <span><Icon name="weather" />じかん <strong>{formatGameTime(state.simulation.clockMinutes)}</strong></span>
+          <span><Icon name="community" />ありがとう <strong>{state.simulation.townTrust}</strong></span>
+        </div>
+        <h2 className="choice-heading">えらぶと どうなる？ 数字を見て 1つ きめよう。</h2>
+        <div className="response-list">
+          {event.availableResponses.map((response) => {
+            const walletShortage = Math.max(0, -(response.walletChange ?? 0) - state.wallet)
+            const savingsShortage = Math.max(0, -(response.savingsChange ?? 0) - state.savings)
+            const unavailable = walletShortage > 0 || savingsShortage > 0
+            const effects = predictedEventEffects(response, state)
+            const responseIcon: IconName = response.usesSupport ? 'community'
+              : response.walletChange ? 'wallet'
+              : response.savingsChange ? 'piggy'
+              : response.energyChange ? 'heart'
+              : 'weather'
+            return <button type="button" key={response.id} disabled={unavailable} onClick={() => onChoose(response.id)}>
+              <span><Icon name={responseIcon} /></span>
+              <span className="response-copy">
+                <strong>{response.label}</strong>
+                <span className="event-effect-list">{effects.map((effect) => <small key={effect.key}><Icon name={effect.icon} />{effect.label} <b>{effect.value}</b></small>)}</span>
+                {unavailable && <small className="event-effect-unavailable">あと {walletShortage || savingsShortage}コイン たりないよ</small>}
+              </span>
+              <Icon name="arrow" />
+            </button>
+          })}
+        </div>
+      </> : <section className="consequence-box">
+        <span className="eyebrow">あなたの えらび方</span><h2>{chosen.label}</h2><p>{chosen.consequence}</p>
+        {actualEffects.length > 0 ? <div className="event-outcome-list" aria-label="えらぶ前とあとの数字">
+          {actualEffects.map((effect) => <div key={effect.key}><Icon name={effect.icon} /><span><small>{effect.label}</small><strong>{effect.value}</strong></span></div>)}
+        </div> : <div className="event-outcome-legacy"><Icon name="check" />この えらび方は きろくずみだよ。</div>}
+        {chosen.usesSupport && <div className="support-note"><Icon name="community" />たすけを使うと、大きな出費をさけたり、つながりをふやしたりできます。</div>}
+        <button type="button" className="button button-primary" onClick={onNext}>家へ かえって 今日をまとめる<Icon name="arrow" /></button>
+      </section>}
+    </main>
+  )
 }
 
 function BudgetPage({ state, onSave }: { state: GameState; onSave: (budget: Record<string, number>) => void }) {
@@ -251,7 +342,7 @@ function FlowPage({ onNext }: { onNext: () => void }) {
   return <main className="page-shell flow-page"><section className="page-intro"><span className="eyebrow">STEP 8</span><h1>お金は、街の中を旅している</h1><p>矢印をタップして、「だれから、だれへ」を見よう。</p></section>
     <div className="flow-workspace"><div className="flow-map" aria-label="お金の流れの図"><svg viewBox="0 0 760 520" role="img" aria-label="住民、店、農家、働く人、共通サービスをお金がめぐる図"><defs><marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0l6 3-6 3z" fill="#d9854f" /></marker></defs><path d="M190 135Q380 35 565 135M600 190Q650 300 535 385M465 420Q300 505 160 390M120 335Q45 225 145 165M215 170Q350 230 488 178" fill="none" stroke="#d9854f" strokeWidth="6" strokeDasharray="12 12" markerEnd="url(#arrowhead)" className="flow-path" /><FlowNode x={130} y={100} label="住民" icon="community" /><FlowNode x={520} y={105} label="パン屋" icon="shop" /><FlowNode x={500} y={365} label="農家" icon="sprout" /><FlowNode x={95} y={350} label="働く人" icon="briefcase" /><FlowNode x={315} y={210} label="共通サービス" icon="home" /></svg><div className="flow-buttons">{moneyFlows.map((flow, index) => <button type="button" key={flow.id} className={activeId === flow.id ? 'is-active' : ''} onClick={() => setActiveId(flow.id)}><span>{index + 1}</span>{flow.from} → {flow.to}</button>)}</div></div>
       <aside className="flow-detail" aria-live="polite"><span className="eyebrow">お金の旅メモ</span><div className="flow-route"><strong>{active.from}</strong><span><Icon name="coin" />{active.amount}コイン<Icon name="arrow" /></span><strong>{active.to}</strong></div><dl><div><dt>何のため？</dt><dd>{active.purpose}</dd></div><div><dt>生まれたもの</dt><dd>{active.createdValue}</dd></div></dl><p><Icon name="info" />使ったお金は消えず、次の仕事やくらしにつながります。</p></aside></div>
-    <div className="center-action"><button type="button" className="button button-primary button-large" onClick={onNext}>一週間を振り返る<Icon name="arrow" /></button></div>
+    <div className="center-action"><button type="button" className="button button-primary button-large" onClick={onNext}>3日間を振り返る<Icon name="arrow" /></button></div>
   </main>
 }
 
@@ -267,8 +358,8 @@ function ReflectionPage({ state, onSave, onHome, onNextWeek }: { state: GameStat
     .reduce((sum, record) => sum
       + Math.max(0, -record.walletDelta)
       + Math.max(0, -record.savingsDelta), 0)
-  if (!state.weekComplete) return <main className="page-shell narrow"><section className="page-intro"><span className="eyebrow">最後のSTEP</span><h1>あなたの考えをのこそう</h1><p>短くても、書かずに話すだけでも大丈夫です。</p></section><div className="reflection-form">{reflectionQuestions.map((question) => <label key={question.id}>{question.label}<textarea value={answers[question.id] ?? ''} onChange={(event) => setAnswers((current) => ({ ...current, [question.id]: event.target.value }))} maxLength={100} placeholder="思ったことを書いてみよう" /></label>)}</div><div className="center-action"><button type="button" className="button button-primary button-large" onClick={() => onSave(answers)}>一週間のまとめを見る<Icon name="arrow" /></button></div></main>
-  return <main className="page-shell summary-page"><section className="summary-hero"><span className="eyebrow">つながりタウン 一週間のきろく</span><h1>あなたのえらび方が、街を動かした</h1><p>一つの正解ではなく、考えてえらんだことが大切です。</p></section><div className="summary-grid"><SummaryItem icon="briefcase" label="体験した仕事" value={job?.shortName ?? '街の仕事'} /><SummaryItem icon="community" label="助けた人" value={job?.helpsWhom ?? '街の人'} /><SummaryItem icon="coin" label="受け取ったお金" value={`${state.grossEarned}コイン`} /><SummaryItem icon="wallet" label="買いもの・できごと" value={`${spent}コイン`} /><SummaryItem icon="wallet" label="今のおさいふ" value={`${state.wallet}コイン`} /><SummaryItem icon="piggy" label="今の貯金" value={`${state.savings}コイン`} /><SummaryItem icon="home" label="今週のぜいきん" value={`${state.sharedPaid}コイン`} /><SummaryItem icon="community" label="これまでのぜいきん" value={`${state.totalSharedPaid}コイン`} /></div><section className="values-card"><span>あなたが大切にしたこと</span><blockquote>{state.spendingReason || '今の自分に合う使い方を考えた'}</blockquote><p>{job?.townEffect}</p></section><section className="unpaid-work"><Icon name="heart" /><div><h2>給料が出なくても、街を支える仕事</h2><p>家事、子育て、介護、地域の見守り。お金だけでははかれない大切な仕事もあります。</p></div></section><div className="action-row center"><button type="button" className="button button-primary" onClick={onNextWeek}>次の一週間へ<Icon name="arrow" /></button><button type="button" className="button button-secondary" onClick={onHome}>ホームにもどる<Icon name="home" /></button></div></main>
+  if (!state.weekComplete) return <main className="page-shell narrow"><section className="page-intro"><span className="eyebrow">最後のSTEP</span><h1>あなたの考えをのこそう</h1><p>短くても、書かずに話すだけでも大丈夫です。</p></section><div className="reflection-form">{reflectionQuestions.map((question) => <label key={question.id}>{question.label}<textarea value={answers[question.id] ?? ''} onChange={(event) => setAnswers((current) => ({ ...current, [question.id]: event.target.value }))} maxLength={100} placeholder="思ったことを書いてみよう" /></label>)}</div><div className="center-action"><button type="button" className="button button-primary button-large" onClick={() => onSave(answers)}>3日間のまとめを見る<Icon name="arrow" /></button></div></main>
+  return <main className="page-shell summary-page"><section className="summary-hero"><span className="eyebrow">つながりタウン 第{state.week}回・3日間のきろく</span><h1>あなたのえらび方が、街を動かした</h1><p>一つの正解ではなく、考えてえらんだことが大切です。</p></section><div className="summary-grid"><SummaryItem icon="briefcase" label="体験した仕事" value={job?.shortName ?? '街の仕事'} /><SummaryItem icon="community" label="助けた人" value={job?.helpsWhom ?? '街の人'} /><SummaryItem icon="coin" label="受け取ったお金" value={`${state.grossEarned}コイン`} /><SummaryItem icon="wallet" label="買いもの・できごと" value={`${spent}コイン`} /><SummaryItem icon="wallet" label="今のおさいふ" value={`${state.wallet}コイン`} /><SummaryItem icon="piggy" label="今の貯金" value={`${state.savings}コイン`} /><SummaryItem icon="home" label="この3日間のぜいきん" value={`${state.sharedPaid}コイン`} /><SummaryItem icon="community" label="これまでのぜいきん" value={`${state.totalSharedPaid}コイン`} /></div><section className="values-card"><span>あなたが大切にしたこと</span><blockquote>{state.spendingReason || '今の自分に合う使い方を考えた'}</blockquote><p>{job?.townEffect}</p></section><section className="unpaid-work"><Icon name="heart" /><div><h2>給料が出なくても、街を支える仕事</h2><p>家事、子育て、介護、地域の見守り。お金だけでははかれない大切な仕事もあります。</p></div></section><div className="action-row center"><button type="button" className="button button-primary" onClick={onNextWeek}>次の3日間へ<Icon name="arrow" /></button><button type="button" className="button button-secondary" onClick={onHome}>ホームにもどる<Icon name="home" /></button></div></main>
 }
 
 function SummaryItem({ icon, label, value }: { icon: IconName; label: string; value: string }) { return <div className="summary-item"><span><Icon name={icon} /></span><small>{label}</small><strong>{value}</strong></div> }
@@ -279,7 +370,7 @@ function Encyclopedia({ state, onTry }: { state: GameState; onTry: (id: JobId) =
 
 function ParentPage({ state }: { state: GameState }) {
   const job = jobById(state.selectedJobId)
-  return <main className="page-shell parent-page"><section className="parent-hero"><span className="eyebrow">保護者の方へ</span><h1>「正しく選べたか」より、<br />「なぜ選んだか」を会話に。</h1><p>仕事とお金が、人や公共サービスを通じて循環することを体験する教材です。</p></section><div className="parent-columns"><section><h2>この教材で扱うこと</h2><ul className="check-list"><li>仕事は誰かの困りごとを助けること</li><li>収入・支出・貯蓄・税の簡単な関係</li><li>限られた予算には優先順位が必要なこと</li><li>無償のケアや地域活動も社会を支えること</li></ul><div className="important-note"><Icon name="info" /><p>価格・給料・税金はすべて架空の簡略値です。現実の給料や税率を表すものではありません。</p></div></section><section><h2>今回の体験</h2>{state.hasStarted ? <dl className="parent-record"><div><dt>仕事</dt><dd>{job?.name ?? 'まだ選んでいません'}</dd></div><div><dt>お金の使い方</dt><dd>{state.spending.map((item) => expenseChoices.find((choice) => choice.id === item.choiceId)?.name).filter(Boolean).join('・') || 'まだ選んでいません'}</dd></div><div><dt>使い方の理由</dt><dd>{state.spendingReason || 'まだ記録がありません'}</dd></div><div><dt>予算で多くした所</dt><dd>{publicServices.filter((service) => state.budget[service.id] >= 2).map((service) => service.name).join('・')}</dd></div></dl> : <p>一週間を始めると、ここに体験の記録が表示されます。</p>}</section></div><section className="prompt-section"><span className="eyebrow">会話のきっかけ</span><h2>こんなふうに聞いてみてください</h2><div className="prompt-grid">{parentPrompts.map((prompt, index) => <div key={prompt}><span>0{index + 1}</span><p>{prompt}</p></div>)}</div></section><section className="privacy-section"><Icon name="community" /><div><h2>個人情報について</h2><p>ログインはなく、入力した内容はこの端末のブラウザ内だけに保存されます。外部サーバーへ送信しません。進捗はホームから消去できます。</p></div></section></main>
+  return <main className="page-shell parent-page"><section className="parent-hero"><span className="eyebrow">保護者の方へ</span><h1>「正しく選べたか」より、<br />「なぜ選んだか」を会話に。</h1><p>仕事とお金が、人や公共サービスを通じて循環することを体験する教材です。</p></section><div className="parent-columns"><section><h2>この教材で扱うこと</h2><ul className="check-list"><li>仕事は誰かの困りごとを助けること</li><li>収入・支出・貯蓄・税の簡単な関係</li><li>限られた予算には優先順位が必要なこと</li><li>無償のケアや地域活動も社会を支えること</li></ul><div className="important-note"><Icon name="info" /><p>価格・給料・税金はすべて架空の簡略値です。現実の給料や税率を表すものではありません。</p></div></section><section><h2>今回の体験</h2>{state.hasStarted ? <dl className="parent-record"><div><dt>仕事</dt><dd>{job?.name ?? 'まだ選んでいません'}</dd></div><div><dt>お金の使い方</dt><dd>{state.spending.map((item) => expenseChoices.find((choice) => choice.id === item.choiceId)?.name).filter(Boolean).join('・') || 'まだ選んでいません'}</dd></div><div><dt>使い方の理由</dt><dd>{state.spendingReason || 'まだ記録がありません'}</dd></div><div><dt>予算で多くした所</dt><dd>{publicServices.filter((service) => state.budget[service.id] >= 2).map((service) => service.name).join('・')}</dd></div></dl> : <p>3日間を始めると、ここに体験の記録が表示されます。</p>}</section></div><section className="prompt-section"><span className="eyebrow">会話のきっかけ</span><h2>こんなふうに聞いてみてください</h2><div className="prompt-grid">{parentPrompts.map((prompt, index) => <div key={prompt}><span>0{index + 1}</span><p>{prompt}</p></div>)}</div></section><section className="privacy-section"><Icon name="community" /><div><h2>個人情報について</h2><p>ログインはなく、入力した内容はこの端末のブラウザ内だけに保存されます。外部サーバーへ送信しません。進捗はホームから消去できます。</p></div></section></main>
 }
 
 function App() {
@@ -303,13 +394,13 @@ function App() {
       case 'map': return <TownMapPage state={state} onProblem={() => game.setScreen('problem')} />
       case 'town': return <TownSimulator state={state} onWork={() => game.setScreen('workplace')} onShop={() => game.setScreen('spend')} onHome={game.goHome} />
       case 'problem': return <ProblemPage state={state} onSelect={game.selectProblem} />
-      case 'job': return selectedJob ? <JobBriefing job={selectedJob} skillLevel={state.simulation.jobStats[selectedJob.id].level} demandBonus={demandBonusFor(state.simulation, selectedJob.id)} resumeShift={Boolean(readShiftProgress(state.week, state.simulation.day, selectedJob.id))} onBack={() => game.setScreen('workplace')} onStart={() => game.beginMission(selectedJob.id)} /> : <WorkplaceCenter state={state} onSelect={game.selectJob} onMap={() => game.setScreen('town')} />
-      case 'mission': return selectedJob ? <Mission job={selectedJob} week={state.week} day={state.simulation.day} skillLevel={state.simulation.jobStats[selectedJob.id].level} demandBonus={demandBonusFor(state.simulation, selectedJob.id)} onComplete={game.completeMission} /> : null
+      case 'job': return selectedJob ? <JobBriefing job={selectedJob} skillLevel={state.simulation.jobStats[selectedJob.id].level} demandBonus={demandBonusFor(state.simulation, selectedJob.id)} resumeShift={false} onBack={() => game.setScreen('workplace')} onStart={() => game.beginMission(selectedJob.id)} /> : <WorkplaceCenter state={state} onSelect={game.selectJob} onMap={() => game.setScreen('town')} />
+      case 'mission': return selectedJob ? <Mission job={selectedJob} week={state.week} day={state.simulation.day} skillLevel={state.simulation.jobStats[selectedJob.id].level} energyAssist={state.simulation.energy > 5} demandBonus={demandBonusFor(state.simulation, selectedJob.id)} onComplete={game.completeMission} /> : null
       case 'payslip': return selectedJob ? <PaydaySimulator job={selectedJob} state={state} onNext={() => game.setScreen('town')} /> : null
       case 'spend': return <SpendSimulator state={state} onSave={game.saveSpending} />
       case 'event': return <EventPage state={state} onChoose={game.chooseEventResponse} onNext={game.completeDay} />
       case 'day-end': return <DayEndSimulator state={state} onNext={game.startNextDay} onReport={game.openWeekReport} />
-      case 'week-report': return <WeekReport state={state} onNextWeek={(investment: TownNeed) => game.startWeek(false, investment)} />
+      case 'week-report': return <WeekReport state={state} onNextWeek={(allocation: TaxAllocation) => game.startWeek(false, allocation)} />
       case 'budget': return <BudgetPage state={state} onSave={game.saveBudget} />
       case 'flow': return <FlowPage onNext={() => game.setScreen('reflection')} />
       case 'reflection': return <ReflectionPage state={state} onSave={game.saveReflections} onHome={() => game.setScreen('home')} onNextWeek={() => game.startWeek(false)} />
@@ -318,7 +409,7 @@ function App() {
     }
   }, [game, selectedJob, state])
 
-  return <div className="app"><AppHeader screen={state.screen} state={state} onHome={() => game.setScreen('home', true)} onMap={() => game.setScreen(state.weekComplete && state.resumeScreen === 'week-report' ? 'week-report' : state.hasStarted ? 'town' : 'map', true)} onBack={goBack} />{simulationScreens.includes(state.screen) && <SimulationHUD state={state} />}{body}<footer className="app-footer"><span>つながりタウン</span><span>この教材の数は架空のものです。</span></footer></div>
+  return <div className={`app screen-${state.screen}`}><AppHeader screen={state.screen} state={state} onHome={() => game.setScreen('home', true)} onMap={() => game.setScreen(state.weekComplete && state.resumeScreen === 'week-report' ? 'week-report' : state.hasStarted ? 'town' : 'map', true)} onBack={goBack} />{simulationScreens.includes(state.screen) && <SimulationHUD state={state} />}{body}<footer className="app-footer"><span>つながりタウン</span><span>この教材の数は架空のものです。</span></footer></div>
 }
 
 export default App

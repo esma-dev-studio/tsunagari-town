@@ -7,9 +7,9 @@ const actionGuides: Partial<Record<Screen, { icon: IconName; number: string; tit
   map: { icon: 'map', number: '1', title: 'オレンジの まるを タップ', text: 'ひかっている ばしょを さがそう' },
   problem: { icon: 'heart', number: '2', title: 'たすけたい こまりごとを えらぶ', text: '3つの どれを えらんでも だいじょうぶ' },
   workplace: { icon: 'briefcase', number: '2', title: '街のようすを見て しごとを えらぶ', text: '好きな仕事でも、困っている仕事でもOK' },
-  job: { icon: 'book', number: '3', title: 'せいふく・いらい・給料を 見る', text: 'このシフトで何をするのかな' },
-  mission: { icon: 'tools', number: '4', title: '考える → うごかす → たしかめる', text: 'まちがえたら ヒントで なおせるよ' },
-  payslip: { icon: 'coin', number: '5', title: '基本給・ボーナス・ぜいきんを見る', text: 'おさいふに入る数を たしかめよう' },
+  job: { icon: 'book', number: '3', title: '3つの そうさを 見る', text: 'ドラッグ・長おし・タイミングを たしかめよう' },
+  mission: { icon: 'tools', number: '4', title: 'つかむ → うごかす → しあげる', text: 'まちがえても なおして つづけられるよ' },
+  payslip: { icon: 'coin', number: '5', title: 'ぜいきんコインを うごかす', text: 'ぜいきんへ分けて、のこりは おさいふへ はこぼう' },
   spend: { icon: 'shop', number: '6', title: 'お店 → レジ → ぎんこう', text: '買う・ためる・のこすが 明日につながる' },
   event: { icon: 'weather', number: '6', title: 'どうするか 1つ えらぶ', text: 'たすけを つかうのも だいじょうぶ' },
   'day-end': { icon: 'home', number: '7', title: '今日のお金と街の変化を見る', text: '買ったものは 明日どうなるかな' },
@@ -48,7 +48,7 @@ export function GuideCharacter() {
 
 export function ChildJourney() {
   const steps: Array<{ icon: IconName; title: string; text: string }> = [
-    { icon: 'briefcase', title: 'はたらく', text: 'せいふく・いらい・さぎょう' },
+    { icon: 'briefcase', title: 'はたらく', text: 'ドラッグ・長おし・タイミング' },
     { icon: 'coin', title: 'もらう', text: 'きゅうりょう・ぜいきん' },
     { icon: 'shop', title: 'つかう・ためる', text: 'お店・レジ・ぎんこう' },
   ]

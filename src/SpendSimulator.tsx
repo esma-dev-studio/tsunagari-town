@@ -51,6 +51,23 @@ export function SpendSimulator({ state, onSave }: { state: GameState; onSave: (r
   const walletAfter = cashAfterRegister - safeDeposit
   const savingsAfter = savingsBefore + safeDeposit
   const basketChoices = shopChoices.filter((choice) => basketIds.includes(choice.id))
+  const moneyDecision = purchaseTotal > 0 && safeDeposit > 0
+    ? 'buy-save'
+    : purchaseTotal > 0 ? 'buy'
+    : safeDeposit > 0 ? 'save'
+    : 'keep'
+  const decisionTitle = moneyDecision === 'buy-save'
+    ? '買って、ちょきんもする'
+    : moneyDecision === 'buy' ? 'お店で 買う'
+    : moneyDecision === 'save' ? 'ぎんこうに ためる'
+    : 'おさいふに のこす'
+  const decisionDetail = moneyDecision === 'buy-save'
+    ? `${purchaseTotal}コインを つかい、${safeDeposit}コインを ちょきんするよ。`
+    : moneyDecision === 'buy'
+      ? `${purchaseTotal}コインを つかい、${walletAfter}コインは おさいふに のこるよ。`
+      : moneyDecision === 'save'
+        ? `${safeDeposit}コインを ちょきんし、${walletAfter}コインは おさいふに のこるよ。`
+        : `${walletAfter}コインを、つぎの日にも つかえるように のこすよ。`
   useEffect(() => {
     const current = phaseRef.current
     current?.focus({ preventScroll: true })
@@ -94,7 +111,7 @@ export function SpendSimulator({ state, onSave }: { state: GameState; onSave: (r
     </ol>
 
     {phase === 'shop' && <section ref={phaseRef} tabIndex={-1} className="town-shop-simulator">
-      <div className="shop-front"><div className="shop-awning" /><div className="shop-clerk" aria-hidden="true"><i /><b /></div><div><span className="eyebrow">まちのお店</span><h2>ほしいものを かごへ 入れよう</h2><p>買わずに、ぜんぶ のこしても だいじょうぶ。</p></div></div>
+      <div className="shop-front"><div className="shop-awning" /><div className="shop-clerk" aria-hidden="true"><i /><b /></div><div><span className="eyebrow">まちのお店</span><h2>どれに お金を つかう？</h2><p>ぜんぶは買えないかも。買わずに のこすのも、だいじな作戦だよ。</p></div></div>
       <div className="shop-simulator-layout">
         <div className="shop-shelves">{shopChoices.map((choice) => { const active = basketIds.includes(choice.id); const remaining = available - purchaseTotal; const unavailable = !active && choice.cost > remaining; const icon: Record<string, IconName> = { need: 'home', want: 'book', help: 'heart', shop: 'shop', save: 'piggy' }; return <article className={`shop-product ${active ? 'is-in-basket' : ''}`} key={choice.id}><div className="product-picture"><Icon name={icon[choice.category]} /><span>{choice.childDescription}</span></div><h3>{choice.name}</h3><p>{choice.effect}</p><strong className="product-price">{choice.cost}<small>コイン</small></strong><button type="button" aria-label={`${choice.name}を ${active ? 'かごから もどす' : 'かごに 入れる'}`} disabled={unavailable} className={`button ${active ? 'button-secondary' : 'button-primary'}`} onClick={() => toggleBasket(choice.id, choice.cost)}>{active ? <><Icon name="back" />かごから もどす</> : <><Icon name="shop" />かごに 入れる</>}</button></article> })}</div>
         <aside className="shopping-basket" aria-live="polite"><div className="basket-handle" /><span><Icon name="shop" />かいものかご</span>{basketChoices.length ? <ul>{basketChoices.map((choice) => <li key={choice.id}><span>{choice.name}</span><strong>{choice.cost}</strong></li>)}</ul> : <p>まだ からっぽだよ。<br />買わないなら、そのままレジへ。</p>}<div className="basket-total"><span>ごうけい</span><strong>{purchaseTotal}<small>コイン</small></strong></div><div className="basket-wallet"><Icon name="wallet" /><span>はらった あと<strong>{cashAfterRegister}コイン</strong></span></div><button type="button" className="button button-primary button-large" onClick={() => { setPhase('checkout'); setPaid(false) }}>かごを もって レジへ<Icon name="arrow" /></button></aside>
@@ -116,9 +133,9 @@ export function SpendSimulator({ state, onSave }: { state: GameState; onSave: (r
         <div className="bank-transfer"><button type="button" disabled={safeDeposit >= cashAfterRegister} onClick={() => setDeposit((current) => Math.min(cashAfterRegister, current + 1))}><Icon name="arrow" />1コイン あずける</button><button type="button" disabled={safeDeposit <= 0} onClick={() => setDeposit((current) => Math.max(0, current - 1))}><Icon name="back" />1コイン もどす</button><strong>{safeDeposit}<small>コイン あずける</small></strong></div>
         <div className="bank-account is-savings"><Icon name="piggy" /><span><small>ちょきん</small><strong>{savingsBefore} → {savingsAfter}<b>コイン</b></strong></span><div className="savings-goal-mini"><span style={{ width: `${Math.min(100, savingsAfter * 10)}%` }} /><small>もくひょう 10コイン</small></div></div>
       </div>
-      <section className="bank-receipt"><span>きょうの お金のきろく</span><dl><div><dt>お店で つかった</dt><dd>−{purchaseTotal}</dd></div><div><dt>ぎんこうに あずけた</dt><dd>{safeDeposit}</dd></div><div><dt>おさいふに のこした</dt><dd>{walletAfter}</dd></div></dl></section>
+      <section className="bank-receipt" aria-live="polite"><span>きょう きめたこと：{decisionTitle}</span><p>{decisionDetail}</p><dl><div><dt>お店で つかった</dt><dd>−{purchaseTotal}</dd></div><div><dt>ぎんこうに あずけた</dt><dd>{safeDeposit}</dd></div><div><dt>おさいふに のこした</dt><dd>{walletAfter}</dd></div></dl></section>
       <section className="spend-reason"><h3>どうして、この使い方にしたの？</h3><div>{['今、ひつようだから', 'あとで あんしんしたいから', 'だれかを たすけたいから'].map((text) => <button type="button" key={text} className={reason === text ? 'is-selected' : ''} onClick={() => setReason(text)}>{reason === text && <Icon name="check" />}{text}</button>)}</div><textarea value={reason} onChange={(event) => setReason(event.target.value)} maxLength={80} aria-label="このお金の使い方にした理由" placeholder="じぶんの ことばで 書いてもいいよ" /></section>
-      <div className="bank-actions"><button type="button" className="button button-secondary" onClick={() => setPhase('checkout')}><Icon name="back" />レジへ もどる</button><button type="button" className="button button-primary button-large" onClick={save}><Icon name="book" />お金のきろくを つける</button></div>
+      <div className="bank-actions"><button type="button" className="button button-secondary" onClick={() => setPhase('checkout')}><Icon name="back" />レジへ もどる</button><button type="button" className="button button-primary button-large" onClick={save}><Icon name="book" />{moneyDecision === 'keep' ? `${walletAfter}コインを のこす` : 'この つかい方に きめる'}</button></div>
     </section>}
   </main>
 }

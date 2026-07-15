@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { expenseChoices, jobs, problems, unexpectedEvents } from './data'
 import { clearAllShiftProgress, clearShiftProgressForWeek } from './shiftProgress'
 import { chooseNextNeed, createInitialSimulation, mergeSimulation, simulationJobNeeds } from './simulationData'
-import type { GameState, JobId, MoneyRecord, Screen, ShiftResult, SpendingRecord, TownNeed } from './types'
+import type { EventOutcome, GameState, JobId, MoneyDecision, MoneyRecord, Screen, ShiftResult, SpendingRecord, TaxAllocation, TownNeed } from './types'
 
 const STORAGE_KEY = 'tsunagari-town-progress-v1'
 const SPEND_DRAFT_PREFIX = 'tsunagari-town-spend-draft-v1-'
@@ -26,6 +26,24 @@ const defaultBudget = {
   waste: 0,
   disaster: 0,
 }
+
+const emptyTaxAllocation = (): TaxAllocation => ({ food: 0, transport: 0, cleanliness: 0 })
+const isTownNeedValue = (value: unknown): value is TownNeed => value === 'food' || value === 'transport' || value === 'cleanliness'
+const clampTaxCoins = (value: unknown) => typeof value === 'number' && Number.isFinite(value)
+  ? Math.max(0, Math.min(3, Math.floor(value)))
+  : 0
+const normalizeTaxAllocation = (value: TaxAllocation | TownNeed | undefined): TaxAllocation | null => {
+  if (!value) return null
+  if (isTownNeedValue(value)) return { ...emptyTaxAllocation(), [value]: 3 }
+  if (typeof value !== 'object') return null
+  const partial = value as Partial<TaxAllocation>
+  return {
+    food: clampTaxCoins(partial.food),
+    transport: clampTaxCoins(partial.transport),
+    cleanliness: clampTaxCoins(partial.cleanliness),
+  }
+}
+const townBoostForTaxCoins = (coins: number) => coins >= 3 ? 2 : coins >= 1 ? 1 : 0
 
 const resumableScreens: Screen[] = [
   'town', 'workplace', 'map', 'problem', 'job', 'mission', 'payslip',
@@ -69,6 +87,21 @@ const isSpendingRecord = (value: unknown): value is SpendingRecord => {
   const record = value as Partial<SpendingRecord>
   return typeof record.choiceId === 'string' && typeof record.amount === 'number'
 }
+
+const isEventOutcome = (value: unknown): value is EventOutcome => {
+  if (!value || typeof value !== 'object') return false
+  const outcome = value as Partial<EventOutcome>
+  const validSnapshot = (snapshot: unknown) => {
+    if (!snapshot || typeof snapshot !== 'object') return false
+    const resource = snapshot as Record<string, unknown>
+    return ['wallet', 'savings', 'energy', 'clockMinutes', 'townTrust']
+      .every((key) => typeof resource[key] === 'number' && Number.isFinite(resource[key]))
+  }
+  return typeof outcome.responseId === 'string' && validSnapshot(outcome.before) && validSnapshot(outcome.after)
+}
+
+const safeEventDelta = (value: number | undefined) => Number.isFinite(value) ? Math.trunc(value ?? 0) : 0
+const clampEventResource = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
 
 const makeLegacyLedger = (stored: Partial<GameState>): MoneyRecord[] => {
   const week = Math.max(1, stored.week ?? 1)
@@ -130,6 +163,7 @@ export const initialState: GameState = {
   spendingReason: '',
   eventId: null,
   eventResponseId: null,
+  eventOutcome: null,
   budget: defaultBudget,
   reflections: {},
   weekComplete: false,
@@ -150,6 +184,7 @@ const readState = (): GameState => {
     const ledger = simulationRestart
       ? originalLedger.filter((record) => record.week !== storedWeek || record.source === 'legacy-opening')
       : originalLedger
+    const eventOutcome = restartJourney || !isEventOutcome(stored.eventOutcome) ? null : stored.eventOutcome
     const restored: GameState = {
       ...initialState,
       ...stored,
@@ -165,7 +200,8 @@ const readState = (): GameState => {
       eventId: restartJourney
         ? unexpectedEvents[(storedWeek - 1) % unexpectedEvents.length].id
         : (stored.eventId ?? null),
-      eventResponseId: restartJourney ? null : (stored.eventResponseId ?? null),
+      eventResponseId: eventOutcome ? (stored.eventResponseId ?? null) : null,
+      eventOutcome,
       budget: restartJourney ? { ...defaultBudget } : { ...defaultBudget, ...(stored.budget ?? {}) },
       reflections: restartJourney ? {} : (stored.reflections ?? {}),
       weekComplete: restartJourney ? false : (stored.weekComplete ?? false),
@@ -198,9 +234,11 @@ export function useGame() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
 
-  const startWeek = useCallback((continueSaved = false, investment?: TownNeed) => {
+  const startWeek = useCallback((continueSaved = false, taxChoice?: TaxAllocation | TownNeed) => {
+    const taxAllocation = normalizeTaxAllocation(taxChoice)
     setState((current) => {
-      if (current.weekComplete && current.resumeScreen === 'week-report' && !investment) {
+      if (taxAllocation && !current.weekComplete) return current
+      if (current.weekComplete && current.resumeScreen === 'week-report' && !taxAllocation) {
         return { ...current, screen: 'week-report', resumeScreen: 'week-report' }
       }
       if (continueSaved && current.hasStarted && !current.weekComplete) {
@@ -228,10 +266,11 @@ export function useGame() {
           Object.entries(current.simulation.jobStats).map(([jobId, stat]) => [jobId, { ...stat }]),
         ) as typeof simulation.jobStats
         const bought = (choiceId: string) => current.spending.some((item) => item.choiceId === choiceId)
-        if (bought('meal')) {
-          simulation.maxEnergy = 6
-          simulation.energy = 6
-        }
+        const hasMeal = bought('meal')
+        const maxEnergy = hasMeal ? 6 : 5
+        const overnightRecovery = hasMeal ? 3 : 2
+        simulation.maxEnergy = maxEnergy
+        simulation.energy = clampEventResource(current.simulation.energy + overnightRecovery, 1, maxEnergy)
         if (bought('local-shop')) simulation.town.food = Math.min(3, simulation.town.food + 1)
         if (bought('share')) simulation.townTrust += 1
         const previousJobId = current.simulation.lastShift?.jobId
@@ -245,7 +284,12 @@ export function useGame() {
           }
         }
       }
-      if (investment) simulation.town[investment] = 3
+      if (current.weekComplete && taxAllocation) {
+        for (const need of Object.keys(taxAllocation) as TownNeed[]) {
+          const boost = townBoostForTaxCoins(taxAllocation[need])
+          simulation.town[need] = Math.min(3, simulation.town[need] + boost)
+        }
+      }
       simulation.todayNeed = chooseNextNeed(simulation.town, week)
       return withMoneyTotals({
         ...current,
@@ -263,6 +307,7 @@ export function useGame() {
         spendingReason: '',
         eventId: unexpectedEvents[(week - 1) % unexpectedEvents.length].id,
         eventResponseId: null,
+        eventOutcome: null,
         budget: { ...defaultBudget },
         reflections: {},
         weekComplete: false,
@@ -386,6 +431,7 @@ export function useGame() {
         spending: [],
         spendingReason: '',
         eventResponseId: null,
+        eventOutcome: null,
         budget: { ...defaultBudget },
         reflections: {},
         weekComplete: false,
@@ -395,6 +441,7 @@ export function useGame() {
 
   const saveSpending = useCallback((spending: SpendingRecord[], reason: string) => {
     setState((current) => {
+      if (!current.simulation.workedToday || current.simulation.shoppedToday) return current
       const source = `week-${current.week}-day-${current.simulation.day}-spend`
       const ledgerRecords: MoneyRecord[] = spending.flatMap((record, index) => {
         const choice = expenseChoices.find((item) => item.id === record.choiceId)
@@ -415,11 +462,19 @@ export function useGame() {
       const ledger = replaceMoneySource(ledgerWithoutEvent, source, ledgerRecords)
       const totals = totalsFromLedger(ledger)
       if (totals.wallet < 0) return current
+      const boughtSomething = spending.some((record) => record.choiceId !== 'savings' && record.amount > 0)
+      const savedSomething = spending.some((record) => record.choiceId === 'savings' && record.amount > 0)
+      const moneyDecision: MoneyDecision = boughtSomething && savedSomething
+        ? 'mixed'
+        : boughtSomething ? 'buy'
+        : savedSomething ? 'save'
+        : 'keep'
       return withMoneyTotals({
         ...current,
         spending,
         spendingReason: reason,
         eventResponseId: null,
+        eventOutcome: null,
         budget: { ...defaultBudget },
         reflections: {},
         weekComplete: false,
@@ -429,6 +484,7 @@ export function useGame() {
           ...current.simulation,
           phase: 'evening',
           shoppedToday: true,
+          moneyDecision,
           clockMinutes: Math.min(18 * 60, current.simulation.clockMinutes + 90),
         },
       }, ledger)
@@ -437,11 +493,15 @@ export function useGame() {
 
   const chooseEventResponse = useCallback((responseId: string) => {
     setState((current) => {
+      if (current.eventResponseId) return current
       const event = unexpectedEvents.find((item) => item.id === current.eventId)
       const response = event?.availableResponses.find((item) => item.id === responseId)
       if (!response) return current
-      const walletDelta = response.walletChange ?? 0
-      const savingsDelta = response.savingsChange ?? 0
+      const walletDelta = safeEventDelta(response.walletChange)
+      const savingsDelta = safeEventDelta(response.savingsChange)
+      const energyDelta = safeEventDelta(response.energyChange)
+      const timeDelta = safeEventDelta(response.timeMinutesChange)
+      const trustDelta = safeEventDelta(response.trustChange)
       if (current.wallet + walletDelta < 0 || current.savings + savingsDelta < 0) return current
       const source = `week-${current.week}-day-${current.simulation.day}-event`
       const eventRecords: MoneyRecord[] = walletDelta === 0 && savingsDelta === 0 ? [] : [{
@@ -450,33 +510,77 @@ export function useGame() {
         walletDelta, savingsDelta, sharedDelta: 0,
       }]
       const ledger = replaceMoneySource(current.ledger, source, eventRecords)
+      const totals = totalsFromLedger(ledger)
+      const nextEnergy = clampEventResource(
+        current.simulation.energy + energyDelta,
+        0,
+        Math.max(0, current.simulation.maxEnergy),
+      )
+      const nextClockMinutes = clampEventResource(current.simulation.clockMinutes + timeDelta, 0, 23 * 60 + 59)
+      const nextTownTrust = clampEventResource(current.simulation.townTrust + trustDelta, 0, 99)
+      const eventOutcome: EventOutcome = {
+        responseId,
+        before: {
+          wallet: current.wallet,
+          savings: current.savings,
+          energy: current.simulation.energy,
+          clockMinutes: current.simulation.clockMinutes,
+          townTrust: current.simulation.townTrust,
+        },
+        after: {
+          wallet: totals.wallet,
+          savings: totals.savings,
+          energy: nextEnergy,
+          clockMinutes: nextClockMinutes,
+          townTrust: nextTownTrust,
+        },
+      }
       return withMoneyTotals({
         ...current,
         eventResponseId: responseId,
+        eventOutcome,
         budget: { ...defaultBudget },
         reflections: {},
         weekComplete: false,
+        simulation: {
+          ...current.simulation,
+          energy: nextEnergy,
+          clockMinutes: nextClockMinutes,
+          townTrust: nextTownTrust,
+        },
       }, ledger)
     })
   }, [])
 
   const goHome = useCallback(() => {
     setState((current) => {
-      if (!current.simulation.workedToday) return current
+      if (!current.simulation.workedToday || !current.simulation.shoppedToday) return current
       const eventId = unexpectedEvents[(current.week + current.simulation.day - 2) % unexpectedEvents.length].id
+      const sameEvent = current.eventId === eventId
       return {
         ...current,
         screen: 'event',
         resumeScreen: 'event',
         eventId,
-        eventResponseId: current.eventId === eventId ? current.eventResponseId : null,
-        simulation: { ...current.simulation, phase: 'evening', clockMinutes: 18 * 60 },
+        eventResponseId: sameEvent ? current.eventResponseId : null,
+        eventOutcome: sameEvent ? current.eventOutcome : null,
+        simulation: {
+          ...current.simulation,
+          phase: 'evening',
+          clockMinutes: sameEvent && current.eventResponseId ? current.simulation.clockMinutes : 18 * 60,
+        },
       }
     })
   }, [])
 
   const completeDay = useCallback(() => {
     setState((current) => {
+      if (
+        !current.simulation.workedToday
+        || !current.simulation.shoppedToday
+        || !current.eventResponseId
+        || current.simulation.phase !== 'evening'
+      ) return current
       const shift = current.simulation.lastShift
       if (!shift) return current
       const dayPrefix = `week-${current.week}-day-${current.simulation.day}`
@@ -485,6 +589,8 @@ export function useGame() {
         .filter((record) => record.kind === 'spend' || record.kind === 'event')
         .reduce((sum, record) => sum + Math.max(0, -record.walletDelta) + Math.max(0, -record.savingsDelta), 0)
       const saved = dayMoney.filter((record) => record.kind === 'save').reduce((sum, record) => sum + record.savingsDelta, 0)
+      const moneyDecision: MoneyDecision = current.simulation.moneyDecision
+        ?? (spent > 0 && saved > 0 ? 'mixed' : spent > 0 ? 'buy' : saved > 0 ? 'save' : 'keep')
       const townNeed = simulationJobNeeds[shift.jobId] ?? current.simulation.todayNeed
       const trustGained = shift.quality + (townNeed === current.simulation.todayNeed ? 1 : 0)
       const record = {
@@ -499,6 +605,7 @@ export function useGame() {
         quality: shift.quality,
         trustGained,
         townNeed,
+        moneyDecision,
       }
       const history = [...current.simulation.history.filter((item) => item.day !== record.day), record].sort((a, b) => a.day - b.day)
       const isLast = current.simulation.day >= current.simulation.totalDays
@@ -506,7 +613,7 @@ export function useGame() {
         ...current,
         screen: 'day-end',
         resumeScreen: 'day-end',
-        simulation: { ...current.simulation, history, phase: isLast ? 'week-complete' : 'day-complete', clockMinutes: 20 * 60 },
+        simulation: { ...current.simulation, history, phase: isLast ? 'week-complete' : 'day-complete' },
       }
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -514,7 +621,10 @@ export function useGame() {
 
   const startNextDay = useCallback(() => {
     setState((current) => {
-      if (current.simulation.day >= current.simulation.totalDays) return current
+      if (
+        current.simulation.phase !== 'day-complete'
+        || current.simulation.day >= current.simulation.totalDays
+      ) return current
       const nextDay = current.simulation.day + 1
       const town = {
         food: Math.max(0, current.simulation.town.food - 1),
@@ -533,6 +643,8 @@ export function useGame() {
         jobStats[jobId] = { ...stat, xp, level: Math.min(3, 1 + Math.floor(xp / 3)) }
       }
       const maxEnergy = hasMeal ? 6 : 5
+      const overnightRecovery = hasMeal ? 3 : 2
+      const energy = clampEventResource(current.simulation.energy + overnightRecovery, 1, maxEnergy)
       return {
         ...current,
         screen: 'town',
@@ -545,19 +657,21 @@ export function useGame() {
         spendingReason: '',
         eventId: unexpectedEvents[(current.week + nextDay - 2) % unexpectedEvents.length].id,
         eventResponseId: null,
+        eventOutcome: null,
         simulation: {
           ...current.simulation,
           day: nextDay,
           phase: 'morning',
           clockMinutes: 8 * 60,
           maxEnergy,
-          energy: maxEnergy,
+          energy,
           townTrust: current.simulation.townTrust + (shared ? 1 : 0),
           town,
           todayNeed: chooseNextNeed(town, nextDay),
           jobStats,
           workedToday: false,
           shoppedToday: false,
+          moneyDecision: null,
           dayStartWallet: current.wallet,
           dayStartSavings: current.savings,
           lastShift: null,

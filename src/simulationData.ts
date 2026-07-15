@@ -45,6 +45,7 @@ export function createInitialSimulation(wallet = 0, savings = 0): SimulationStat
     jobStats: emptyJobStats(),
     workedToday: false,
     shoppedToday: false,
+    moneyDecision: null,
     dayStartWallet: wallet,
     dayStartSavings: savings,
     lastShift: null,
