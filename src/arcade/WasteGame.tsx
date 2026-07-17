@@ -756,6 +756,12 @@ export function WasteGame({ skillLevel, onComplete }: ArcadeGameProps) {
                   style={itemStyle}
                   aria-pressed={selectedId === item.id}
                   aria-label={item.label + '。選ぶか、下の箱へドラッグします'}
+                  onKeyDown={(event) => {
+                    if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
+                      event.preventDefault();
+                      chooseItem(item.id);
+                    }
+                  }}
                   onClick={(event) => {
                     if (event.detail === 0) chooseItem(item.id);
                   }}

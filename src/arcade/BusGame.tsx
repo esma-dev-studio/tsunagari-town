@@ -469,6 +469,12 @@ export function BusGame({ skillLevel, onComplete }: ArcadeGameProps) {
           <span aria-hidden="true">←</span><strong>ひだりへ</strong><small>レーン変更</small>
         </button>
         <button type="button" className={`bus-brake-button${view.braking ? ' is-pressed' : ''}`} disabled={view.phase !== 'playing'} aria-pressed={view.braking}
+          onKeyDown={(event) => {
+            if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
+              event.preventDefault()
+              setBraking(!modelRef.current.braking)
+            }
+          }}
           onClick={(event) => { if (event.detail === 0) setBraking(!modelRef.current.braking) }}
           onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); setBraking(true) }}
           onPointerUp={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); setBraking(false) }}

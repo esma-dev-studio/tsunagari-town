@@ -217,6 +217,12 @@ export function BakeryGame({ skillLevel, onComplete }: ArcadeGameProps) {
     resetOffset(ingredient.id)
   }
 
+  const ingredientKey = (event: React.KeyboardEvent<HTMLButtonElement>, ingredient: Ingredient) => {
+    if ((event.key !== 'Enter' && event.key !== ' ') || event.repeat) return
+    event.preventDefault()
+    chooseIngredient(ingredient)
+  }
+
   useEffect(() => {
     if (phase !== 'ingredients' || accepted.length !== REQUIRED.length) return
     const timer = window.setTimeout(() => {
@@ -580,6 +586,7 @@ export function BakeryGame({ skillLevel, onComplete }: ArcadeGameProps) {
                     onPointerUp={(event) => ingredientUp(event, ingredient)}
                     onPointerCancel={(event) => cancelIngredient(event, ingredient)}
                     onLostPointerCapture={(event) => cancelIngredient(event, ingredient)}
+                    onKeyDown={(event) => ingredientKey(event, ingredient)}
                     onClick={(event) => {
                       if (event.detail === 0) chooseIngredient(ingredient)
                     }}
