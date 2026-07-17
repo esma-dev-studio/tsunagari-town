@@ -1,53 +1,423 @@
-/* Bus: steer, dodge, and brake */
-.bus-game { background: linear-gradient(180deg, #eaf5f5, #dcebea); }
+﻿/* Bus game: three-lane driving, passenger missions, and safety feedback */
+.bus-game {
+  --bus-blue: #2876aa;
+  --bus-blue-dark: #174f79;
+  --bus-cyan: #8ee4ed;
+  --bus-gold: #ffd34e;
+  --bus-green: #3d9c69;
+  --bus-red: #dc5548;
+  overflow: hidden;
+  color: #17324d;
+  background:
+    radial-gradient(circle at 85% 4%, rgba(255, 213, 78, .23), transparent 20%),
+    linear-gradient(180deg, #e9f8fb 0, #f7f5eb 32%, #edf3ec 100%);
+}
 .bus-game-header { margin-bottom: 10px; }
-.bus-stop-progress { position: relative; margin: 0 0 15px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); list-style: none; }
-.bus-stop-progress::before { content: ''; position: absolute; left: 15%; right: 15%; top: 22px; height: 6px; border-radius: 8px; background: #aebfbe; }
-.bus-stop-dot { position: relative; z-index: 1; display: grid; justify-items: center; gap: 5px; color: #65797d; font-size: .68rem; text-align: center; }
-.bus-stop-dot > span { width: 44px; height: 44px; display: grid; place-items: center; border: 4px solid #aebfbe; border-radius: 50%; background: #f6fbfa; font-size: 1rem; font-weight: 900; }
-.bus-stop-dot.is-current { color: var(--navy); }
-.bus-stop-dot.is-current > span { color: white; border-color: #3f78a8; background: #3f78a8; box-shadow: 0 0 0 6px rgba(63,120,168,.15); }
-.bus-stop-dot.is-complete > span { color: white; border-color: #4d876a; background: #4d876a; }
-.bus-dashboard { margin-bottom: 12px; display: grid; grid-template-columns: 120px 120px 1fr; gap: 9px; }
-.bus-meter { min-height: 68px; padding: 8px; display: grid; grid-template-columns: 1fr auto; align-items: end; border: 2px solid #aebcba; border-radius: 13px; background: #213d51; color: white; box-shadow: inset 0 0 0 4px #36586c; }
-.bus-meter > span { grid-column: 1 / -1; color: #bed2d8; font-size: .7rem; font-weight: 900; }
-.bus-meter strong { font-size: 1.65rem; line-height: 1; }.bus-meter small { margin-left: 4px; font-size: .65rem; }
-.bus-safety-callout { min-height: 68px; padding: 10px 15px; display: flex; align-items: center; border: 3px solid #7da293; border-radius: 13px; background: #edf8ed; color: #35654d; font-size: .78rem; font-weight: 900; }
-.bus-safety-callout.is-alert { border-color: #e2a22e; background: #fff1b9; color: #875b18; animation: bus-alert .8s ease-in-out infinite alternate; }
-.bus-road { position: relative; min-height: 520px; overflow: hidden; border: 8px solid #55726d; border-radius: 23px; background: linear-gradient(90deg, #78aa68 0 12%, #4c5b5d 12% 88%, #78aa68 88%); box-shadow: inset 0 0 0 4px #d5e7dd, 0 10px 0 #39534f; touch-action: none; outline-offset: 4px; user-select: none; }
-.bus-road::before, .bus-road::after { content: ''; position: absolute; z-index: 1; top: 0; bottom: 0; width: 5px; background: #f6f0d2; box-shadow: 0 0 0 3px #697677; }.bus-road::before { left: 23%; }.bus-road::after { right: 23%; }
-.bus-road-scenery { position: absolute; z-index: 3; top: 3%; bottom: 3%; width: 11%; display: flex; flex-direction: column; justify-content: space-around; align-items: center; font-size: 2rem; }.bus-scenery-left { left: 0; }.bus-scenery-right { right: 0; }
-.bus-lane-lines { position: absolute; z-index: 1; inset: 0 12%; display: grid; grid-template-columns: repeat(5, 1fr); }.bus-lane-lines span { justify-self: center; width: 7px; height: 72px; margin-top: -20px; background: #f5e8a8; box-shadow: 0 135px 0 #f5e8a8, 0 270px 0 #f5e8a8, 0 405px 0 #f5e8a8; opacity: .74; transform: perspective(300px) rotateX(15deg); }
-.bus-stop-lane { position: absolute; z-index: 4; width: 116px; height: 65px; display: grid; place-items: center; border: 6px solid #f4d44e; border-radius: 13px; background: rgba(255,241,135,.24); box-shadow: 0 0 0 7px rgba(244,212,78,.17); transform: translate(-50%, 50%); transition: left .12s linear, bottom .12s linear; }
-.bus-stop-lane.is-aligned { border-color: #72d08c; box-shadow: 0 0 0 8px rgba(114,208,140,.23); }
-.bus-stop-lane-label { padding: 4px 8px; border-radius: 7px; color: #493c17; background: #ffe980; font-size: .62rem; font-weight: 900; white-space: nowrap; }
-.bus-cone { position: absolute; z-index: 5; width: 40px; height: 49px; display: grid; place-items: center; color: #f07836; font-size: 2.25rem; text-shadow: 0 4px 0 #8a3f28; transform: translate(-50%, 50%); transition: left .1s linear, bottom .1s linear; }.bus-cone::after { content: ''; position: absolute; bottom: 1px; width: 42px; height: 8px; border-radius: 50%; background: #303d40; }.bus-cone.is-hit { opacity: .45; transform: translate(-50%, 50%) rotate(70deg); }
-.bus-vehicle { position: absolute; z-index: 10; bottom: 6%; width: 122px; height: 142px; color: white; transform: translateX(-50%); transition: left .07s linear, transform .12s ease; filter: drop-shadow(0 8px 5px rgba(20,35,40,.28)); }
-.bus-vehicle-window { height: 53px; padding: 8px 10px 5px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; border: 5px solid #315f88; border-bottom: 0; border-radius: 19px 19px 0 0; background: #3f78a8; }.bus-vehicle-window span { border-radius: 5px; background: #d7f0f3; box-shadow: inset 0 -8px 0 #afd2d7; }
-.bus-vehicle-body { height: 67px; display: grid; place-items: center; border: 5px solid #315f88; border-top: 0; border-radius: 0 0 13px 13px; background: #3f78a8; box-shadow: inset 0 -15px 0 #2f668f; font-size: .78rem; font-weight: 900; }
-.bus-wheels { position: absolute; left: 12px; right: 12px; bottom: -7px; display: flex; justify-content: space-between; }.bus-wheels span { width: 28px; height: 28px; border: 7px solid #2d3c42; border-radius: 50%; background: #a9b9b8; }
-.bus-brake-lights { position: absolute; z-index: 3; left: 8px; right: 8px; bottom: 34px; display: flex; justify-content: space-between; }.bus-brake-lights span { width: 15px; height: 12px; border-radius: 4px; background: #772c2c; }.bus-vehicle.is-braking .bus-brake-lights span { background: #ff3c32; box-shadow: 0 0 15px #ff4338; }.bus-vehicle.is-braking { transform: translateX(-50%) scale(.96); }
-.bus-road-message { position: absolute; z-index: 20; top: 15px; left: 50%; max-width: 80%; padding: 10px 17px; border-radius: 999px; color: #17324d; background: white; box-shadow: 0 6px 16px rgba(23,50,77,.18); font-size: .78rem; font-weight: 900; text-align: center; transform: translateX(-50%); }
-.arcade-intro, .bus-stop-feedback { position: absolute; z-index: 30; inset: 12% 14%; padding: 25px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 4px solid #466b7d; border-radius: 24px; background: rgba(255,255,255,.95); box-shadow: 0 18px 35px rgba(23,50,77,.25); text-align: center; }.arcade-intro h3, .bus-stop-feedback h3 { margin: 8px 0; }.arcade-intro p, .bus-stop-feedback p { margin: 4px 0 13px; font-size: .82rem; line-height: 1.55; }.bus-intro-demo { display: flex; align-items: center; gap: 18px; font-size: 2.2rem; }.bus-intro-demo strong { font-size: 3.4rem; }
-.bus-stop-feedback.is-great { border-color: #4f966f; background: rgba(242,255,240,.97); }.bus-stop-feedback.is-close { border-color: #d7a33a; background: rgba(255,250,224,.97); }.bus-stop-feedback.is-bump { border-color: #c67b55; background: rgba(255,244,235,.97); }.bus-next-stop-message { padding: 7px 12px; border-radius: 999px; background: #e8ece8; font-weight: 900; }
-.bus-controls { margin-top: 18px; display: grid; grid-template-columns: minmax(120px, .7fr) minmax(210px, 1.2fr) minmax(120px, .7fr); gap: 12px; }.bus-controls button { min-height: 76px; border: 0; border-radius: 17px; font-weight: 900; cursor: pointer; }.bus-controls button:disabled { cursor: default; opacity: .5; }.bus-steer-button { border: 3px solid #748a8e !important; background: white; box-shadow: 0 7px 0 #aab8b6; font-size: 1rem; }.bus-brake-button { display: grid; grid-template-columns: 45px 1fr; place-items: center; padding: 10px 18px; color: white; background: #c14c3e; box-shadow: 0 9px 0 #7f312b; font-size: 1rem; touch-action: none; }.bus-brake-button small { grid-column: 2; font-size: .68rem; }.bus-brake-icon { grid-row: 1 / 3; width: 37px; height: 37px; display: grid; place-items: center; border: 4px solid white; border-radius: 50%; }.bus-brake-button.is-pressed { transform: translateY(6px); background: #ef3e34; box-shadow: 0 3px 0 #7f312b; }
-.bus-help-text { margin: 15px 0 0; color: #526b6e; font-size: .72rem; font-weight: 800; text-align: center; }
+.bus-game-header h2 { max-width: 720px; letter-spacing: -.025em; }
 
-@keyframes bus-alert { to { transform: scale(1.015); } }
+.bus-stop-progress {
+  position: relative;
+  margin: 0 0 13px;
+  padding: 0 4%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  list-style: none;
+}
+.bus-stop-progress::before {
+  content: '';
+  position: absolute;
+  left: 15%; right: 15%; top: 21px;
+  height: 7px;
+  border: 2px solid #a8bab9;
+  border-radius: 999px;
+  background: #d9e2df;
+}
+.bus-stop-progress li {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: #657a7d;
+  font-size: .69rem;
+  text-align: center;
+}
+.bus-stop-progress li > span {
+  width: 46px; height: 46px;
+  display: grid;
+  place-items: center;
+  border: 4px solid #a8bab9;
+  border-radius: 50%;
+  color: #607479;
+  background: #f7fbfa;
+  box-shadow: 0 3px 0 rgba(23, 50, 77, .1);
+  font-size: .82rem;
+  font-weight: 900;
+}
+.bus-stop-progress li strong { overflow: hidden; max-width: 100%; text-overflow: ellipsis; white-space: nowrap; }
+.bus-stop-progress li.is-current { color: #17324d; }
+.bus-stop-progress li.is-current > span {
+  color: #fff;
+  border-color: var(--bus-blue-dark);
+  background: var(--bus-blue);
+  box-shadow: 0 0 0 6px rgba(40, 118, 170, .16), 0 4px 0 #174f79;
+  animation: bus-current-stop 1.2s ease-in-out infinite alternate;
+}
+.bus-stop-progress li.is-complete > span { color: #fff; border-color: #2f7652; background: var(--bus-green); }
 
+.bus-passenger-mission {
+  min-height: 88px;
+  margin-bottom: 11px;
+  padding: 11px 14px;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 13px;
+  align-items: center;
+  border: 3px solid #77a6bb;
+  border-left-width: 8px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 6px 0 rgba(53, 91, 105, .14);
+}
+.bus-passenger-avatar {
+  position: relative;
+  width: 58px; height: 58px;
+  display: grid;
+  place-items: center;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #f9d776, #f0a661);
+  box-shadow: 0 0 0 3px #e4bd59, 0 5px 8px rgba(23, 50, 77, .14);
+  font-size: 1.65rem;
+}
+.bus-passenger-avatar.mood-happy { background: linear-gradient(145deg, #b9edbc, #74c98d); }
+.bus-passenger-avatar.mood-worried { background: linear-gradient(145deg, #ffd3a1, #ef916d); }
+.bus-passenger-mission small, .bus-passenger-mission strong, .bus-passenger-mission p { display: block; }
+.bus-passenger-mission small { color: #55717a; font-size: .67rem; font-weight: 900; letter-spacing: .06em; }
+.bus-passenger-mission strong { margin-top: 1px; font-size: .95rem; }
+.bus-passenger-mission p { margin: 4px 0 0; color: #35667b; font-size: .78rem; font-weight: 900; }
+.bus-difficulty {
+  min-width: 116px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  color: #fff;
+  background: #244c66;
+  font-size: .64rem;
+  font-weight: 800;
+  text-align: center;
+}
+.bus-difficulty b { display: block; color: #ffe078; font-size: .67rem; }
+
+.bus-dashboard {
+  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: 130px 130px 122px 108px minmax(230px, 1fr);
+  gap: 8px;
+}
+.bus-meter, .bus-safety-meter, .bus-combo-meter, .bus-safety-callout {
+  min-width: 0;
+  min-height: 86px;
+  border-radius: 15px;
+}
+.bus-meter {
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-content: center;
+  border: 3px solid #345b72;
+  color: #fff;
+  background: linear-gradient(145deg, #24495f, #17364c);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .1), 0 5px 0 rgba(23, 50, 77, .18);
+}
+.bus-meter > span { color: #c5dce4; font-size: .65rem; font-weight: 900; }
+.bus-meter > strong { font-size: 1.75rem; line-height: 1; text-align: right; }
+.bus-meter strong small { margin-left: 3px; font-size: .55rem; }
+.bus-meter em { grid-column: 1 / -1; margin-top: 4px; color: #c5dce4; font-size: .59rem; font-style: normal; font-weight: 800; }
+.bus-meter-track {
+  grid-column: 1 / -1;
+  height: 8px;
+  margin-top: 7px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, .16);
+}
+.bus-meter-track i { display: block; height: 100%; border-radius: inherit; background: #efb34e; transition: width .12s linear; }
+.bus-speed-meter.is-safe .bus-meter-track i { background: #73d299; }
+.bus-distance-meter .bus-meter-track i { background: #71c9e6; }
+
+.bus-safety-meter {
+  padding: 9px 10px;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 4px;
+  align-content: center;
+  border: 3px solid #6c9f7d;
+  background: #eef9ef;
+  box-shadow: 0 5px 0 rgba(61, 119, 81, .15);
+}
+.bus-safety-meter > span { grid-row: 1 / 3; align-self: center; font-size: 1.4rem; }
+.bus-safety-meter small { display: block; color: #4f7460; font-size: .63rem; font-weight: 900; }
+.bus-safety-meter strong { color: #276346; font-size: 1.45rem; line-height: 1; }
+.bus-safety-track { grid-column: 1 / -1; height: 7px; overflow: hidden; border-radius: 99px; background: #c7dfcb; }
+.bus-safety-track i { display: block; height: 100%; border-radius: inherit; background: #3d9c69; transition: width .25s ease; }
+.bus-safety-meter.is-low { border-color: #d48664; background: #fff3e6; }
+.bus-safety-meter.is-low .bus-safety-track i { background: #dc6c4d; }
+
+.bus-combo-meter {
+  padding: 10px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  border: 3px solid #e0bd55;
+  background: #fff8d6;
+  box-shadow: 0 5px 0 rgba(143, 107, 25, .15);
+  text-align: center;
+}
+.bus-combo-meter small { color: #7c6524; font-size: .6rem; font-weight: 900; }
+.bus-combo-meter strong { color: #ab5e2c; font-size: 1.7rem; line-height: 1; }
+.bus-combo-meter strong span { margin-left: 3px; font-size: .55rem; }
+.bus-combo-meter.is-hot { border-color: #f2a743; background: #fff0bd; animation: bus-combo-pulse .65s ease-in-out infinite alternate; }
+
+.bus-safety-callout {
+  padding: 10px 15px;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 8px;
+  align-items: center;
+  border: 3px solid #82a69b;
+  background: #edf8f0;
+  color: #315f50;
+  box-shadow: 0 5px 0 rgba(49, 95, 80, .13);
+  font-size: .77rem;
+}
+.bus-safety-callout > span { font-size: 1.45rem; }
+.bus-safety-callout.is-alert { border-color: #e5aa31; color: #805817; background: #fff1b9; animation: bus-alert .75s ease-in-out infinite alternate; }
+.bus-guidance-status { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); border: 0; white-space: nowrap; }
+
+.bus-road {
+  position: relative;
+  min-height: 530px;
+  overflow: hidden;
+  border: 8px solid #345c66;
+  border-radius: 25px;
+  color: #17324d;
+  background: linear-gradient(180deg, #74cbe8 0 18%, #99d5d8 18% 21%, #6da55e 21% 100%);
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, .55), 0 11px 0 #284a50, 0 18px 25px rgba(23, 50, 77, .18);
+  touch-action: none;
+  user-select: none;
+  outline-offset: 5px;
+  isolation: isolate;
+}
+.bus-skyline { position: absolute; z-index: 1; inset: 0 0 auto; height: 24%; overflow: hidden; }
+.bus-skyline > span { position: absolute; bottom: 0; border: 3px solid rgba(38, 86, 102, .35); border-bottom: 0; background: repeating-linear-gradient(90deg, #d9efe8 0 11px, #6ba2b2 11px 16px); }
+.bus-skyline > span::before { content: ''; position: absolute; left: 50%; top: -11px; width: 3px; height: 11px; background: #526f77; }
+.bus-skyline .building-one { left: 7%; width: 12%; height: 47%; }
+.bus-skyline .building-two { left: 71%; width: 16%; height: 67%; background-color: #e0d8ba; }
+.bus-skyline .building-three { right: 1%; width: 10%; height: 40%; background-color: #d4b895; }
+.bus-cloud { position: absolute; width: 58px; height: 15px; border-radius: 99px; background: rgba(255, 255, 255, .82); }
+.bus-cloud::before, .bus-cloud::after { content: ''; position: absolute; bottom: 0; border-radius: 50%; background: inherit; }
+.bus-cloud::before { left: 10px; width: 24px; height: 25px; }
+.bus-cloud::after { right: 8px; width: 19px; height: 20px; }
+.cloud-one { left: 25%; top: 21%; }.cloud-two { right: 21%; top: 13%; transform: scale(.72); }
+.bus-horizon-tree { position: absolute; bottom: -2px; width: 25px; height: 34px; border-radius: 50% 50% 44% 44%; background: #3f8057; box-shadow: inset -7px -5px 0 rgba(35, 91, 58, .32); }
+.bus-horizon-tree::after { content: ''; position: absolute; left: 10px; bottom: -9px; width: 6px; height: 13px; background: #725039; }
+.tree-one { left: 2%; }.tree-two { left: 22%; transform: scale(.75); }.tree-three { right: 13%; transform: scale(.9); }
+
+.bus-road-plane {
+  position: absolute;
+  z-index: 2;
+  inset: 18% 0 0;
+  clip-path: polygon(42% 0, 58% 0, 95% 100%, 5% 100%);
+  background:
+    radial-gradient(circle at 30% 35%, rgba(255, 255, 255, .08) 0 2px, transparent 3px),
+    radial-gradient(circle at 63% 62%, rgba(0, 0, 0, .08) 0 2px, transparent 3px),
+    linear-gradient(90deg, #4a565b, #5c6769 50%, #465256);
+  background-size: 35px 29px, 41px 37px, auto;
+  filter: drop-shadow(0 0 2px #39484b);
+}
+.bus-road-edge { position: absolute; z-index: 3; top: 18%; bottom: 0; width: 5px; transform-origin: top; background: repeating-linear-gradient(180deg, #f6e6ae 0 25px, #db6755 25px 50px); }
+.bus-road-edge.edge-left { left: 42%; transform: rotate(13.7deg); }.bus-road-edge.edge-right { right: 42%; transform: rotate(-13.7deg); }
+.bus-lane-lines { position: absolute; z-index: 3; inset: 18% 0 0; pointer-events: none; }
+.bus-lane-lines span { position: absolute; top: 0; bottom: -8%; width: 4px; transform-origin: top; opacity: .74; background: repeating-linear-gradient(180deg, #fff6c9 0 23px, transparent 23px 48px); }
+.bus-lane-lines span:first-child { left: 47.3%; transform: rotate(7.7deg); }.bus-lane-lines span:last-child { right: 47.3%; transform: rotate(-7.7deg); }
+.bus-lane-labels { position: absolute; z-index: 7; left: 13%; right: 13%; bottom: 1.5%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; pointer-events: none; }
+.bus-lane-labels span { justify-self: center; padding: 2px 7px; border-radius: 999px; color: rgba(255, 255, 255, .7); background: rgba(23, 50, 77, .42); font-size: .54rem; font-weight: 900; }
+.bus-lane-labels span.is-current { color: #17324d; background: #ffe17a; box-shadow: 0 0 0 3px rgba(255, 225, 122, .24); }
+
+.bus-stop-lane {
+  --bus-scale: 1;
+  position: absolute;
+  z-index: 6;
+  width: 138px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border: 7px solid #50c7ed;
+  border-radius: 17px;
+  background: rgba(107, 217, 247, .32);
+  box-shadow: 0 0 0 8px rgba(82, 198, 235, .18), inset 0 0 18px rgba(255, 255, 255, .52);
+  transform: translate(-50%, 50%) scale(var(--bus-scale));
+  transform-origin: center bottom;
+  transition: left .12s linear, bottom .12s linear, transform .12s linear;
+}
+.bus-stop-lane::after { content: ''; position: absolute; left: 10%; right: 10%; bottom: 7px; height: 6px; border-radius: 50%; background: rgba(23, 79, 121, .25); }
+.bus-stop-lane.is-aligned { border-color: #65e18e; background: rgba(103, 226, 145, .34); box-shadow: 0 0 0 9px rgba(103, 226, 145, .2), 0 0 25px rgba(103, 226, 145, .48); }
+.bus-stop-sign { position: absolute; left: 7px; top: -37px; width: 30px; height: 47px; display: grid; justify-items: center; color: #fff; }
+.bus-stop-sign b { width: 30px; height: 30px; display: grid; place-items: center; border: 3px solid #fff; border-radius: 50%; background: #2876aa; font-size: .49rem; }
+.bus-stop-sign i { width: 4px; height: 18px; background: #e8eef0; }
+.bus-stop-lane-label { padding: 5px 9px; border: 2px solid #fff; border-radius: 8px; color: #144765; background: #b9ecfa; box-shadow: 0 3px 0 #398ca5; font-size: .62rem; font-weight: 900; white-space: nowrap; }
+
+.bus-cone {
+  --bus-scale: 1;
+  position: absolute;
+  z-index: 8;
+  width: 44px; height: 53px;
+  transform: translate(-50%, 50%) scale(var(--bus-scale));
+  transform-origin: center bottom;
+  transition: left .1s linear, bottom .1s linear, transform .14s ease, opacity .18s ease;
+  filter: drop-shadow(0 5px 3px rgba(22, 38, 42, .35));
+}
+.bus-cone > span { position: absolute; left: 10px; top: 0; width: 25px; height: 44px; clip-path: polygon(50% 0, 100% 100%, 0 100%); background: repeating-linear-gradient(180deg, #ef6b35 0 13px, #fff6e5 13px 20px, #ef6b35 20px 100%); }
+.bus-cone > i { position: absolute; left: 1px; bottom: 0; width: 42px; height: 9px; border-radius: 3px; background: #e96533; box-shadow: inset 0 -3px 0 #a73c25; }
+.bus-cone > b { position: absolute; left: 5px; right: 5px; bottom: -5px; height: 8px; border-radius: 50%; background: rgba(20, 31, 34, .4); }
+.bus-cone.is-hit { transform: translate(-50%, 50%) scale(var(--bus-scale)) rotate(72deg); filter: saturate(.65); }
+.bus-cone.is-cleared::after { content: '✓'; position: absolute; right: -14px; top: -14px; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #3d9c69; box-shadow: 0 0 0 3px rgba(255, 255, 255, .8); font-size: .72rem; font-weight: 900; animation: bus-clear-pop .3s ease-out both; }
+
+.bus-vehicle {
+  position: absolute;
+  z-index: 14;
+  bottom: 4.5%;
+  width: 126px; height: 153px;
+  color: #fff;
+  transform: translateX(-50%);
+  transition: left .18s cubic-bezier(.2, .9, .25, 1), transform .13s ease;
+  filter: drop-shadow(0 10px 6px rgba(17, 34, 40, .34));
+}
+.bus-route-sign { position: absolute; z-index: 4; left: 34px; right: 34px; top: 5px; padding: 3px 2px; border: 2px solid #9adcea; border-radius: 4px; color: #fff7a5; background: #183b51; font-size: .5rem; font-weight: 900; text-align: center; }
+.bus-vehicle-window { height: 63px; padding: 25px 10px 7px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; border: 6px solid var(--bus-blue-dark); border-bottom: 0; border-radius: 23px 23px 4px 4px; background: var(--bus-blue); }
+.bus-vehicle-window span { display: grid; place-items: center; overflow: hidden; border: 2px solid #88c3d4; border-radius: 6px; color: #274f61; background: linear-gradient(180deg, #daf7fb, #a9d7df); box-shadow: inset 0 -9px 0 rgba(75, 137, 153, .2); font-size: .54rem; font-weight: 900; }
+.bus-vehicle-body { height: 69px; display: grid; place-items: center; align-content: center; border: 6px solid var(--bus-blue-dark); border-top: 0; border-radius: 3px 3px 16px 16px; background: linear-gradient(180deg, #2d84ba, #226d9f); box-shadow: inset 0 -18px 0 rgba(15, 70, 108, .22); }
+.bus-vehicle-body b { color: #fff; font-size: .74rem; letter-spacing: .1em; }.bus-vehicle-body small { color: #d0f0f5; font-size: .38rem; letter-spacing: .16em; }
+.bus-mirrors { position: absolute; z-index: -1; left: -8px; right: -8px; top: 53px; display: flex; justify-content: space-between; }.bus-mirrors i { width: 13px; height: 20px; border: 4px solid var(--bus-blue-dark); border-radius: 6px; background: #b8e5eb; }
+.bus-brake-lights { position: absolute; z-index: 4; left: 12px; right: 12px; bottom: 30px; display: flex; justify-content: space-between; }.bus-brake-lights span { width: 17px; height: 12px; border: 3px solid #742d32; border-radius: 4px; background: #ad3f40; }
+.bus-vehicle.is-braking .bus-brake-lights span { background: #ff3d39; box-shadow: 0 0 15px #ff4a43; }.bus-vehicle.is-braking { transform: translateX(-50%) scale(.97); }
+.bus-bumper { position: absolute; left: 15px; right: 15px; bottom: 8px; height: 7px; border-radius: 5px; background: #dbe3e3; box-shadow: 0 3px 0 #7b9193; }
+.bus-wheels { position: absolute; left: 13px; right: 13px; bottom: -8px; display: flex; justify-content: space-between; }.bus-wheels span { width: 28px; height: 28px; border: 7px solid #283a3e; border-radius: 50%; background: #9caeb0; box-shadow: inset 0 0 0 3px #53686b; }
+.bus-vehicle.mood-worried { animation: bus-shake .26s ease-in-out 2; }
+.bus-passenger-reaction { position: absolute; z-index: 9; right: -35px; top: -27px; padding: 6px 9px; border: 3px solid #17324d; border-radius: 14px 14px 14px 3px; color: #17324d; background: #fff; box-shadow: 0 4px 0 rgba(23, 50, 77, .18); font-size: .65rem; font-weight: 900; white-space: nowrap; animation: bus-reaction-pop .25s ease-out both; }
+.bus-combo-sparks { position: absolute; z-index: 8; inset: -13px; color: #ffdf55; font-size: 1rem; pointer-events: none; }.bus-combo-sparks i { position: absolute; font-style: normal; text-shadow: 0 2px 0 #aa6a22; }.bus-combo-sparks i:nth-child(1) { left: 2px; top: 30%; }.bus-combo-sparks i:nth-child(2) { right: 0; top: 7%; }.bus-combo-sparks i:nth-child(3) { right: -3px; bottom: 23%; }
+
+.bus-road-message {
+  position: absolute;
+  z-index: 24;
+  top: 14px; left: 50%;
+  max-width: min(86%, 560px);
+  padding: 9px 17px;
+  border: 3px solid #4d7c91;
+  border-radius: 999px;
+  color: #17324d;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 6px 0 rgba(23, 50, 77, .17);
+  font-size: .77rem;
+  font-weight: 900;
+  text-align: center;
+  transform: translateX(-50%);
+  animation: bus-message-in .24s ease-out both;
+}
+.bus-road-message.is-success { border-color: #45966a; color: #246446; background: #edfff1; }
+.bus-road-message.is-warning { border-color: #e1a72f; color: #7f5612; background: #fff4bf; }
+.bus-road-message.is-danger { border-color: #d16a52; color: #8b382d; background: #fff0e9; }
+
+.bus-stop-feedback {
+  position: absolute;
+  z-index: 30;
+  inset: 7% 12%;
+  padding: 19px clamp(18px, 4vw, 38px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 5px solid #4d8193;
+  border-radius: 26px;
+  color: #17324d;
+  background: rgba(250, 253, 251, .97);
+  box-shadow: 0 20px 45px rgba(17, 45, 58, .32), inset 0 0 0 4px rgba(255, 255, 255, .78);
+  text-align: center;
+  backdrop-filter: blur(4px);
+}
+.bus-stop-feedback.is-great { border-color: #4aa271; background: rgba(239, 255, 241, .98); }
+.bus-stop-feedback.is-close { border-color: #d9a640; background: rgba(255, 250, 225, .98); }
+.bus-stop-feedback.is-bump { border-color: #cf795c; background: rgba(255, 243, 236, .98); }
+.bus-arrival-label { padding: 5px 12px; border-radius: 999px; color: #fff; background: #276e91; font-size: .65rem; font-weight: 900; letter-spacing: .05em; }
+.bus-feedback-stars { margin: 4px 0 -2px; display: flex; gap: 4px; }
+.bus-feedback-stars span { color: #cbd2ce; font-size: clamp(1.55rem, 4vw, 2.35rem); line-height: 1; text-shadow: 0 3px 0 #9ba8a3; transform: scale(.9); }
+.bus-feedback-stars span.is-earned { color: #ffd34e; text-shadow: 0 3px 0 #b78227; transform: scale(1); animation: bus-star-in .35s ease-out both; }
+.bus-feedback-stars span:nth-child(2) { animation-delay: .08s; }.bus-feedback-stars span:nth-child(3) { animation-delay: .16s; }
+.bus-stop-feedback h3 { margin: 6px 0 3px; font-size: clamp(1.15rem, 3vw, 1.65rem); }
+.bus-passenger-quote { margin: 4px 0 10px; padding: 8px 13px; border: 2px solid #b9cbc9; border-radius: 13px; background: #fff; font-size: .78rem; font-weight: 800; }
+.bus-passenger-quote > span { margin-right: 7px; font-size: 1.05rem; }
+.bus-stop-checks { width: min(570px, 100%); margin: 0 0 11px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; list-style: none; }
+.bus-stop-checks li { min-height: 43px; padding: 6px; display: flex; align-items: center; justify-content: center; gap: 5px; border: 2px solid #c9d1cd; border-radius: 10px; color: #6d7774; background: rgba(255, 255, 255, .8); font-size: .66rem; font-weight: 900; }
+.bus-stop-checks li > span { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: #e3e7e4; }
+.bus-stop-checks li.is-good { border-color: #83bd91; color: #34704d; background: #eff9ef; }.bus-stop-checks li.is-good > span { color: #fff; background: #429867; }
+.bus-stop-checks li.is-try { border-color: #e1bd68; color: #84631e; background: #fff7dc; }.bus-stop-checks li.is-try > span { color: #fff; background: #d59b2e; }
+.bus-next-button { min-width: min(310px, 100%); min-height: 48px; padding: 9px 20px; border: 0; border-radius: 14px; color: #fff; background: linear-gradient(180deg, #3485b4, #236994); box-shadow: 0 6px 0 #174f79; font: inherit; font-size: .82rem; font-weight: 900; cursor: pointer; }
+.bus-next-button:hover { filter: brightness(1.06); }.bus-next-button:active { transform: translateY(4px); box-shadow: 0 2px 0 #174f79; }
+.bus-feedback-confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }.bus-feedback-confetti i { position: absolute; width: 9px; height: 16px; border-radius: 2px; background: #ffd34e; transform: rotate(24deg); }.bus-feedback-confetti i:nth-child(1) { left: 7%; top: 14%; }.bus-feedback-confetti i:nth-child(2) { left: 15%; bottom: 17%; background: #5cc7df; transform: rotate(-18deg); }.bus-feedback-confetti i:nth-child(3) { right: 8%; top: 18%; background: #ef7d65; }.bus-feedback-confetti i:nth-child(4) { right: 16%; bottom: 12%; background: #78c58d; transform: rotate(48deg); }.bus-feedback-confetti i:nth-child(5) { left: 30%; top: 6%; background: #b18fd5; }.bus-feedback-confetti i:nth-child(6) { right: 31%; top: 8%; background: #f3a84c; transform: rotate(-36deg); }
+
+.bus-controls { margin-top: 19px; display: grid; grid-template-columns: minmax(118px, .75fr) minmax(210px, 1.3fr) minmax(118px, .75fr); gap: 11px; }
+.bus-controls button { min-height: 79px; font: inherit; font-weight: 900; cursor: pointer; touch-action: manipulation; }
+.bus-controls button:disabled { cursor: default; opacity: .4; filter: grayscale(.45); }
+.bus-steer-button { padding: 8px; display: grid; grid-template-columns: auto 1fr; place-items: center; border: 3px solid #66828b; border-radius: 17px; color: #17324d; background: linear-gradient(180deg, #fff, #eaf0ef); box-shadow: 0 7px 0 #9aaead; }
+.bus-steer-button > span { grid-row: 1 / 3; margin: 0 7px; color: #236994; font-size: 1.65rem; line-height: 1; }.bus-steer-button strong { font-size: .82rem; }.bus-steer-button small { color: #667d80; font-size: .57rem; }
+.bus-steer-button:not(:disabled):active { transform: translateY(5px); box-shadow: 0 2px 0 #9aaead; }
+.bus-brake-button { padding: 9px 15px; display: grid; grid-template-columns: 52px 1fr; place-items: center; border: 3px solid #8f302c; border-radius: 17px; color: #fff; background: linear-gradient(180deg, #e56452, #b53e35); box-shadow: 0 9px 0 #792c29, inset 0 2px 0 rgba(255, 255, 255, .2); }
+.bus-brake-icon { grid-row: 1 / 3; width: 43px; height: 43px; display: grid; place-items: center; border: 4px solid #fff; border-radius: 50%; background: #be3934; font-size: .49rem; letter-spacing: .02em; }.bus-brake-button strong { font-size: .88rem; }.bus-brake-button small { font-size: .61rem; opacity: .86; }.bus-brake-button.is-pressed { transform: translateY(6px); background: #f03f37; box-shadow: 0 3px 0 #792c29; }
+.bus-help-text { margin: 16px 0 0; color: #506d72; font-size: .74rem; font-weight: 800; text-align: center; }.bus-help-text b { color: #235d79; }.bus-help-text small { display: inline; color: #43805d; font-size: .67rem; font-weight: 900; }
+
+@keyframes bus-current-stop { to { transform: translateY(-2px); box-shadow: 0 0 0 8px rgba(40, 118, 170, .12), 0 4px 0 #174f79; } }
+@keyframes bus-alert { to { transform: scale(1.012); } }
+@keyframes bus-combo-pulse { to { transform: translateY(-2px); box-shadow: 0 7px 0 rgba(143, 107, 25, .16); } }
+@keyframes bus-clear-pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+@keyframes bus-reaction-pop { from { opacity: 0; transform: translateY(7px) scale(.8); } }
+@keyframes bus-shake { 25% { transform: translateX(calc(-50% - 4px)) rotate(-1deg); } 75% { transform: translateX(calc(-50% + 4px)) rotate(1deg); } }
+@keyframes bus-message-in { from { opacity: 0; transform: translate(-50%, -9px) scale(.92); } }
+@keyframes bus-star-in { from { opacity: 0; transform: translateY(9px) scale(.3) rotate(-18deg); } }
+
+@media (max-width: 980px) {
+  .bus-dashboard { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .bus-safety-callout { grid-column: 1 / -1; min-height: 62px; }
+}
 @media (max-width: 650px) {
-  .bus-dashboard { grid-template-columns: 88px 88px 1fr; }.bus-safety-callout { padding: 7px 9px; font-size: .72rem; }.bus-road { min-height: 460px; border-radius: 14px; }.bus-road-scenery { font-size: 1.35rem; }.bus-vehicle { width: 88px; height: 116px; }.bus-vehicle-window { height: 42px; }.bus-vehicle-body { height: 54px; font-size: .58rem; }.bus-controls { grid-template-columns: 1fr 1.5fr 1fr; gap: 6px; }.bus-controls button { min-height: 70px; font-size: .75rem; }.bus-brake-button { grid-template-columns: 27px 1fr; padding: 7px; }.bus-brake-icon { width: 27px; height: 27px; border-width: 3px; }.arcade-intro, .bus-stop-feedback { inset: 10% 5%; padding: 18px; }
+  .bus-game-header { align-items: flex-start; }.bus-game-header h2 { font-size: 1.24rem; }
+  .bus-game-header .arcade-score { min-width: 88px; padding: 8px; }
+  .bus-stop-progress { padding: 0; }.bus-stop-progress::before { left: 13%; right: 13%; top: 18px; height: 5px; }
+  .bus-stop-progress li { font-size: .58rem; }.bus-stop-progress li > span { width: 39px; height: 39px; border-width: 3px; }
+  .bus-passenger-mission { grid-template-columns: 49px minmax(0, 1fr); gap: 9px; padding: 9px 10px; border-left-width: 5px; }
+  .bus-passenger-avatar { width: 45px; height: 45px; font-size: 1.25rem; }.bus-passenger-mission strong { font-size: .78rem; }.bus-passenger-mission p { font-size: .68rem; }
+  .bus-difficulty { grid-column: 1 / -1; justify-self: stretch; min-width: 0; padding: 4px 7px; }.bus-difficulty br { display: none; }.bus-difficulty b { display: inline; margin-left: 6px; }
+  .bus-dashboard { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .bus-meter, .bus-safety-meter, .bus-combo-meter { min-height: 76px; }.bus-meter > strong { font-size: 1.45rem; }.bus-safety-meter strong { font-size: 1.25rem; }
+  .bus-safety-callout { min-height: 57px; padding: 7px 10px; font-size: .69rem; }
+  .bus-road { min-height: 460px; border-width: 6px; border-radius: 18px; }.bus-vehicle { width: 94px; height: 119px; }.bus-route-sign { left: 24px; right: 24px; top: 3px; font-size: .39rem; }
+  .bus-vehicle-window { height: 48px; padding: 19px 7px 5px; border-width: 5px; }.bus-vehicle-body { height: 54px; border-width: 5px; }.bus-vehicle-body b { font-size: .56rem; }.bus-wheels { left: 10px; right: 10px; }.bus-wheels span { width: 22px; height: 22px; border-width: 6px; }
+  .bus-stop-lane { width: 103px; height: 57px; border-width: 5px; }.bus-stop-lane-label { font-size: .52rem; }.bus-cone { width: 36px; height: 45px; }.bus-cone > span { left: 8px; width: 21px; height: 37px; }.bus-cone > i { width: 35px; }
+  .bus-stop-feedback { inset: 5% 4%; padding: 14px 10px; border-width: 4px; }.bus-stop-feedback h3 { margin-top: 3px; }.bus-passenger-quote { margin-bottom: 7px; font-size: .68rem; }
+  .bus-stop-checks { gap: 4px; }.bus-stop-checks li { min-height: 39px; padding: 4px 2px; display: grid; justify-items: center; gap: 1px; font-size: .56rem; }.bus-stop-checks li > span { width: 19px; height: 19px; }
+  .bus-controls { grid-template-columns: 1fr 1.35fr 1fr; gap: 6px; }.bus-controls button { min-width: 0; min-height: 72px; }.bus-steer-button { grid-template-columns: 1fr; padding: 5px 2px; }.bus-steer-button > span { grid-row: auto; margin: 0; font-size: 1.35rem; }.bus-steer-button strong { font-size: .66rem; }.bus-steer-button small { display: none; }
+  .bus-brake-button { grid-template-columns: 34px 1fr; padding: 6px 5px; }.bus-brake-icon { width: 31px; height: 31px; border-width: 3px; font-size: .38rem; }.bus-brake-button strong { font-size: .68rem; }.bus-brake-button small { font-size: .5rem; }
 }
-
+@media (max-width: 360px) {
+  .bus-game-header h2 { font-size: 1.08rem; }.bus-stop-progress li strong { font-size: .52rem; }
+  .bus-passenger-mission p { font-size: .63rem; }.bus-dashboard { gap: 4px; }.bus-meter, .bus-safety-meter, .bus-combo-meter { padding: 6px; }
+  .bus-road { min-height: 438px; border-left-width: 5px; border-right-width: 5px; }.bus-road-message { top: 9px; padding: 7px 10px; font-size: .64rem; }
+  .bus-stop-feedback { inset: 3%; }.bus-arrival-label { font-size: .57rem; }.bus-next-button { min-height: 44px; font-size: .71rem; }
+  .bus-help-text { font-size: .67rem; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .bus-safety-callout.is-alert { animation: none; }.bus-vehicle, .bus-cone, .bus-stop-lane { transition: none; }
-}
-
-.bus-guidance-status { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
-.bus-safety-callout { font-size: .82rem; }
-.bus-brake-button small { font-size: .75rem; }
-@media (max-width: 650px) { .bus-safety-callout, .bus-controls button { font-size: .82rem; } }
-@media (max-width: 460px) {
-  .bus-dashboard { grid-template-columns: 1fr 1fr; }
-  .bus-safety-callout { grid-column: 1 / -1; min-height: 60px; font-size: .85rem; }
+  .bus-stop-progress li.is-current, .bus-safety-callout.is-alert, .bus-combo-meter.is-hot,
+  .bus-cone.is-cleared::after, .bus-vehicle.mood-worried, .bus-passenger-reaction,
+  .bus-road-message, .bus-feedback-stars span.is-earned { animation: none; }
+  .bus-meter-track i, .bus-safety-track i, .bus-stop-lane, .bus-cone, .bus-vehicle { transition: none; }
 }

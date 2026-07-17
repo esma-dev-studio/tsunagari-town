@@ -10,21 +10,26 @@ import {
 import type { ArcadeGameProps } from './types';
 
 type WasteKind = 'burnable' | 'resource' | 'danger';
-type WastePhase = 'sorting' | 'compacting' | 'done';
+type WastePhase = 'patrol' | 'compacting' | 'done';
 type FeedbackTone = 'info' | 'good' | 'try';
+type LocationId = 'park' | 'street' | 'river';
 
 interface TrashItem {
   id: string;
   label: string;
   emoji: string;
   kind: WasteKind;
+  location: LocationId;
   x: number;
   y: number;
   tilt: number;
+  hint: string;
+  reason: string;
 }
 
 interface DragState {
   id: string;
+  pointerId: number;
   startX: number;
   startY: number;
   dx: number;
@@ -38,20 +43,146 @@ const KIND_LABEL: Record<WasteKind, string> = {
 };
 
 const BINS: Array<{ kind: WasteKind; label: string; emoji: string; hint: string }> = [
-  { kind: 'burnable', label: 'もえる', emoji: '🔥', hint: 'かわ・ティッシュ・木' },
-  { kind: 'resource', label: 'しげん', emoji: '♻️', hint: 'びん・かん・紙' },
+  { kind: 'burnable', label: 'もえる', emoji: '🔥', hint: 'かわ・紙くず・木' },
+  { kind: 'resource', label: 'しげん', emoji: '♻️', hint: 'ボトル・かん・新聞' },
   { kind: 'danger', label: 'きけん', emoji: '⚠️', hint: 'でんち・われもの' },
 ];
 
+const LOCATIONS: Array<{
+  id: LocationId;
+  label: string;
+  shortLabel: string;
+  icon: string;
+  mission: string;
+  clearMessage: string;
+  friend: string;
+}> = [
+  {
+    id: 'park',
+    label: 'ひだまり公園',
+    shortLabel: '公園',
+    icon: '🌳',
+    mission: '遊具やベンチのまわりをパトロール',
+    clearMessage: 'ちょうちょと子どもたちが帰ってきた！',
+    friend: '🦋',
+  },
+  {
+    id: 'street',
+    label: 'にぎわい通り',
+    shortLabel: '商店街',
+    icon: '🏪',
+    mission: 'お店の前と道路のすみをチェック',
+    clearMessage: 'お店の人とわんちゃんがにっこり！',
+    friend: '🐕',
+  },
+  {
+    id: 'river',
+    label: 'きらきら川べり',
+    shortLabel: '川べり',
+    icon: '🌊',
+    mission: '橋の下や草むらをよく見てみよう',
+    clearMessage: '魚とカモがきれいな川へもどってきた！',
+    friend: '🦆',
+  },
+];
+
 const TRASH_ITEMS: TrashItem[] = [
-  { id: 'banana', label: 'バナナのかわ', emoji: '🍌', kind: 'burnable', x: 10, y: 62, tilt: -12 },
-  { id: 'tissue', label: 'つかったティッシュ', emoji: '🧻', kind: 'burnable', x: 44, y: 57, tilt: 8 },
-  { id: 'branch', label: '木のえだ', emoji: '🪵', kind: 'burnable', x: 77, y: 67, tilt: -7 },
-  { id: 'bottle', label: 'ペットボトル', emoji: '🧴', kind: 'resource', x: 26, y: 72, tilt: 11 },
-  { id: 'can', label: 'あきかん', emoji: '🥫', kind: 'resource', x: 61, y: 72, tilt: -10 },
-  { id: 'paper', label: 'しんぶんし', emoji: '📰', kind: 'resource', x: 87, y: 53, tilt: 6 },
-  { id: 'battery', label: 'つかったでんち', emoji: '🔋', kind: 'danger', x: 35, y: 82, tilt: -5 },
-  { id: 'bulb', label: 'われたでんきゅう', emoji: '💡', kind: 'danger', x: 70, y: 84, tilt: 10 },
+  {
+    id: 'banana',
+    label: 'バナナのかわ',
+    emoji: '🍌',
+    kind: 'burnable',
+    location: 'park',
+    x: 19,
+    y: 69,
+    tilt: -11,
+    hint: '食べものの「かわ」だよ。かわは燃やしてしょりできるね。',
+    reason: 'バナナのかわは食べもののごみだから「もえる」へ入れるよ。',
+  },
+  {
+    id: 'tissue',
+    label: 'つかったティッシュ',
+    emoji: '🧻',
+    kind: 'burnable',
+    location: 'park',
+    x: 51,
+    y: 79,
+    tilt: 7,
+    hint: 'よごれた紙は、もう新しい紙にしにくいよ。',
+    reason: 'よごれたティッシュはリサイクルできないから「もえる」へ入れるよ。',
+  },
+  {
+    id: 'battery',
+    label: 'つかったでんち',
+    emoji: '🔋',
+    kind: 'danger',
+    location: 'park',
+    x: 82,
+    y: 61,
+    tilt: -7,
+    hint: '中に薬品が入っているよ。火や水にふれるとあぶないね。',
+    reason: 'でんちは中の薬品がもれるとあぶないから「きけん」へ入れるよ。',
+  },
+  {
+    id: 'can',
+    label: 'あきかん',
+    emoji: '🥫',
+    kind: 'resource',
+    location: 'street',
+    x: 18,
+    y: 76,
+    tilt: -10,
+    hint: '金ぞくでできているよ。また新しい物に生まれかわれるかな？',
+    reason: 'あきかんの金ぞくは何度も使えるから「しげん」へ入れるよ。',
+  },
+  {
+    id: 'paper',
+    label: 'しんぶんし',
+    emoji: '📰',
+    kind: 'resource',
+    location: 'street',
+    x: 50,
+    y: 62,
+    tilt: 6,
+    hint: 'きれいな紙は、集めると新しい紙に生まれかわるよ。',
+    reason: 'しんぶんしは新しい紙に生まれかわるから「しげん」へ入れるよ。',
+  },
+  {
+    id: 'bulb',
+    label: 'われたでんきゅう',
+    emoji: '💡',
+    kind: 'danger',
+    location: 'street',
+    x: 82,
+    y: 78,
+    tilt: 10,
+    hint: 'われたガラスで手を切るかもしれないよ。',
+    reason: 'われたでんきゅうは手を切るきけんがあるから「きけん」へ入れるよ。',
+  },
+  {
+    id: 'bottle',
+    label: 'ペットボトル',
+    emoji: '🧴',
+    kind: 'resource',
+    location: 'river',
+    x: 28,
+    y: 72,
+    tilt: 11,
+    hint: 'マークをたよりに集めると、服やボトルに生まれかわるよ。',
+    reason: 'ペットボトルは新しい物に生まれかわるから「しげん」へ入れるよ。',
+  },
+  {
+    id: 'branch',
+    label: 'おれた木のえだ',
+    emoji: '🪵',
+    kind: 'burnable',
+    location: 'river',
+    x: 72,
+    y: 67,
+    tilt: -7,
+    hint: '川からひろった小さな木だよ。かわかすと燃やせるね。',
+    reason: '小さな木のえだは燃やしてしょりできるから「もえる」へ入れるよ。',
+  },
 ];
 
 function binAtPoint(clientX: number, clientY: number): WasteKind | null {
@@ -67,32 +198,55 @@ function binAtPoint(clientX: number, clientY: number): WasteKind | null {
 
 export function WasteGame({ skillLevel, onComplete }: ArcadeGameProps) {
   const level = Math.max(1, Number.isFinite(skillLevel) ? skillLevel : 1);
-  const [phase, setPhase] = useState<WastePhase>('sorting');
+  const [phase, setPhase] = useState<WastePhase>('patrol');
+  const [currentLocation, setCurrentLocation] = useState(0);
   const [sortedIds, setSortedIds] = useState<string[]>([]);
+  const [spottedIds, setSpottedIds] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hintId, setHintId] = useState<string | null>(null);
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [rejectedId, setRejectedId] = useState<string | null>(null);
   const [mistakes, setMistakes] = useState(0);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [feedback, setFeedback] = useState('町におちたごみを、ぴったりの箱へはこぼう！');
+  const [lastPoints, setLastPoints] = useState<number | null>(null);
+  const [feedback, setFeedback] = useState('まずは「ひだまり公園」を歩いて、ごみを見つけよう！');
   const [feedbackTone, setFeedbackTone] = useState<FeedbackTone>('info');
   const [gauge, setGauge] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
   const [compactAttempts, setCompactAttempts] = useState(0);
+  const [compactRound, setCompactRound] = useState(0);
 
   const startedAtRef = useRef(Date.now());
   const sortedRef = useRef(new Set<string>());
+  const spottedRef = useRef(new Set<string>());
+  const scoreRef = useRef(0);
+  const mistakesRef = useRef(0);
+  const streakRef = useRef(0);
   const holdingRef = useRef(false);
   const gaugeRef = useRef(0);
+  const compactAttemptsRef = useRef(0);
+  const compactRoundRef = useRef(0);
   const completedRef = useRef(false);
   const timersRef = useRef<number[]>([]);
+  const firstWasteItemRef = useRef<HTMLButtonElement | null>(null);
+  const nextLocationRef = useRef<HTMLButtonElement | null>(null);
+  const compactorLeverRef = useRef<HTMLButtonElement | null>(null);
 
-  const skillHelp = Math.min(10, Math.max(0, level - 1) * 2);
-  const retryHelp = compactAttempts * 7;
-  const greenStart = Math.max(36, 58 - skillHelp - retryHelp);
-  const greenEnd = Math.min(97, 82 + skillHelp + retryHelp);
+  const location = LOCATIONS[currentLocation] ?? LOCATIONS[0];
+  const locationItems = TRASH_ITEMS.filter((item) => item.location === location.id);
+  const visibleItems = locationItems.filter((item) => !sortedRef.current.has(item.id));
+  const localSortedCount = locationItems.length - visibleItems.length;
+  const locationComplete = localSortedCount === locationItems.length;
   const cleanPercent = Math.round((sortedIds.length / TRASH_ITEMS.length) * 100);
+  const selectedItem = TRASH_ITEMS.find((item) => item.id === selectedId) ?? null;
+
+  const skillHelp = Math.min(8, Math.max(0, level - 1) * 3);
+  const retryHelp = Math.min(18, compactAttempts * 6);
+  const roundStart = compactRound === 0 ? 42 : 61;
+  const roundEnd = compactRound === 0 ? 69 : 84;
+  const greenStart = Math.max(18, roundStart - skillHelp - retryHelp);
+  const greenEnd = Math.min(98, roundEnd + skillHelp + retryHelp);
 
   const schedule = useCallback((task: () => void, delay: number) => {
     const timer = window.setTimeout(task, delay);
@@ -105,18 +259,43 @@ export function WasteGame({ skillLevel, onComplete }: ArcadeGameProps) {
     };
   }, []);
 
+  const changeScore = useCallback((amount: number) => {
+    scoreRef.current = Math.max(0, scoreRef.current + amount);
+    setScore(scoreRef.current);
+  }, []);
+
+  const spotItem = useCallback(
+    (itemId: string) => {
+      const item = TRASH_ITEMS.find((candidate) => candidate.id === itemId);
+      if (!item || spottedRef.current.has(itemId) || sortedRef.current.has(itemId)) return;
+
+      spottedRef.current.add(itemId);
+      setSpottedIds(Array.from(spottedRef.current));
+      changeScore(10);
+      setLastPoints(10);
+      setFeedback('見つけた！ ' + item.label + 'だ。どの箱へ運ぶ？');
+      setFeedbackTone('good');
+      schedule(() => setLastPoints((value) => (value === 10 ? null : value)), 650);
+    },
+    [changeScore, schedule],
+  );
+
   const sortIntoBin = useCallback(
     (itemId: string, binKind: WasteKind) => {
       const item = TRASH_ITEMS.find((candidate) => candidate.id === itemId);
-      if (!item || sortedRef.current.has(itemId) || phase !== 'sorting') return;
+      if (!item || sortedRef.current.has(itemId) || phase !== 'patrol') return;
+      spotItem(itemId);
 
       if (item.kind !== binKind) {
-        setMistakes((value) => value + 1);
-        setScore((value) => Math.max(0, value - 15));
+        mistakesRef.current += 1;
+        setMistakes(mistakesRef.current);
+        changeScore(-10);
+        streakRef.current = 0;
         setStreak(0);
         setRejectedId(itemId);
         setSelectedId(itemId);
-        setFeedback(`${item.label}は「${KIND_LABEL[item.kind]}」だよ。もどして、もういちど！`);
+        setHintId(itemId);
+        setFeedback('ちがう箱だね。' + item.reason + ' もういちどやってみよう！');
         setFeedbackTone('try');
         schedule(() => {
           setRejectedId((current) => (current === itemId ? null : current));
@@ -125,30 +304,62 @@ export function WasteGame({ skillLevel, onComplete }: ArcadeGameProps) {
       }
 
       sortedRef.current.add(itemId);
-      const nextSorted = [...sortedRef.current];
-      const earned = 100 + Math.min(40, streak * 10);
+      const nextSorted = Array.from(sortedRef.current);
+      const nextStreak = streakRef.current + 1;
+      const earned = 100 + Math.min(100, (nextStreak - 1) * 25);
+      const isAreaClear = locationItems.every((candidate) => sortedRef.current.has(candidate.id));
+
+      streakRef.current = nextStreak;
+      setStreak(nextStreak);
       setSortedIds(nextSorted);
-      setScore((value) => value + earned);
-      setStreak((value) => value + 1);
+      changeScore(earned);
+      setLastPoints(earned);
       setSelectedId(null);
+      setHintId(null);
       setRejectedId(null);
       setFeedback(
-        nextSorted.length === TRASH_ITEMS.length
-          ? 'ぜんぶ回収できた！つぎは回収車でギュッと小さくしよう！'
-          : `せいかい！ ${item.label}を回収。町がきれいになったよ！`,
+        isAreaClear
+          ? location.label + 'をきれいにできた！ ' + location.clearMessage
+          : 'せいかい！ ' + item.reason + (nextStreak >= 2 ? ' ' + nextStreak + 'コンボ！' : ''),
       );
       setFeedbackTone('good');
-
-      if (nextSorted.length === TRASH_ITEMS.length) {
-        schedule(() => {
-          setPhase('compacting');
-          setFeedback('レバーを長押し。メーターがみどりで、手をはなそう！');
-          setFeedbackTone('info');
-        }, 850);
-      }
+      schedule(() => setLastPoints((value) => (value === earned ? null : value)), 800);
     },
-    [phase, schedule, streak],
+    [changeScore, location.clearMessage, location.label, locationItems, phase, schedule, spotItem],
   );
+
+  const chooseItem = useCallback(
+    (itemId: string) => {
+      const item = TRASH_ITEMS.find((candidate) => candidate.id === itemId);
+      if (!item || sortedRef.current.has(itemId)) return;
+      spotItem(itemId);
+      setSelectedId(itemId);
+      setHintId(null);
+      setFeedback(item.label + 'をひろったよ。マークを見て、箱をえらぼう！');
+      setFeedbackTone('info');
+    },
+    [spotItem],
+  );
+
+  const advancePatrol = () => {
+    if (!locationComplete) return;
+
+    setSelectedId(null);
+    setHintId(null);
+    setDragging(null);
+    if (currentLocation < LOCATIONS.length - 1) {
+      const nextIndex = currentLocation + 1;
+      const nextLocation = LOCATIONS[nextIndex];
+      setCurrentLocation(nextIndex);
+      setFeedback('てくてく移動！ つぎは「' + nextLocation.label + '」をパトロールしよう。');
+      setFeedbackTone('info');
+      return;
+    }
+
+    setPhase('compacting');
+    setFeedback('町じゅうのごみを回収！ 回収車で2回ギュッとして、しゅっぱつさせよう。');
+    setFeedbackTone('info');
+  };
 
   const finishRun = useCallback(
     (compactPoints: number, compactMistake: number, compactQuality: 'great' | 'okay' | 'rough') => {
@@ -157,23 +368,24 @@ export function WasteGame({ skillLevel, onComplete }: ArcadeGameProps) {
       holdingRef.current = false;
       setIsHolding(false);
 
-      const totalMistakes = mistakes + compactMistake;
-      const finalScore = Math.max(0, score + compactPoints + Math.min(60, level * 8));
+      const totalMistakes = mistakesRef.current + compactMistake;
+      const finalScore = Math.max(0, scoreRef.current + compactPoints + Math.min(60, level * 8));
       const stars: 1 | 2 | 3 =
-        compactQuality === 'great' && totalMistakes <= 1 ? 3 : totalMistakes <= 3 ? 2 : 1;
+        compactQuality === 'great' && totalMistakes <= 1 ? 3 : totalMistakes <= 4 ? 2 : 1;
       const title =
-        stars === 3 ? '町そうじの名人！' : stars === 2 ? '分別チャレンジャー！' : 'おそうじヒーロー！';
+        stars === 3 ? '町をすくう清掃名人！' : stars === 2 ? 'ぴかぴかパトロール隊！' : 'やりぬいた町のヒーロー！';
       const detail =
         stars === 3
-          ? 'ごみを正しく分けて、町も回収車もぴかぴかにできたよ。'
+          ? '3つの場所を見回り、正しく分けて、回収車までばっちり動かせたよ。'
           : stars === 2
-            ? 'まちがいを直しながら、さいごまで町をきれいにできたよ。'
-            : 'さいごまでやりとげたね。つぎは箱のマークをよく見てみよう！';
+            ? '理由をたしかめながら、住民や生きものが帰れる町にできたよ。'
+            : 'まちがえても直して、さいごまで町をきれいにできたことがすごい！';
 
-      setMistakes(totalMistakes);
+      scoreRef.current = finalScore;
       setScore(finalScore);
+      setMistakes(totalMistakes);
       setPhase('done');
-      setFeedback(stars === 3 ? 'ジャスト！回収車が元気に出発したよ！' : '回収できた！町のみんながよろこんでいるよ！');
+      setFeedback('回収車しゅっぱつ！ 町のみんなから「ありがとう！」がとどいたよ。');
       setFeedbackTone('good');
 
       schedule(() => {
@@ -185,9 +397,9 @@ export function WasteGame({ skillLevel, onComplete }: ArcadeGameProps) {
           detail,
           seconds: Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000)),
         });
-      }, 950);
+      }, 1150);
     },
-    [level, mistakes, onComplete, schedule, score],
+    [level, onComplete, schedule],
   );
 
   const settleCompactor = useCallback(
@@ -198,30 +410,46 @@ export function WasteGame({ skillLevel, onComplete }: ArcadeGameProps) {
       const value = Math.max(0, Math.min(100, Math.round(rawValue)));
 
       if (value >= greenStart && value <= greenEnd) {
-        finishRun(260, compactAttempts, 'great');
+        if (compactRoundRef.current === 0) {
+          compactRoundRef.current = 1;
+          setCompactRound(1);
+          changeScore(140);
+          gaugeRef.current = 0;
+          setGauge(0);
+          setFeedback('ズシン！ 1回目せいこう。ごみが小さくなった！ つぎは、ふたをしっかりロックしよう。');
+          setFeedbackTone('good');
+          return;
+        }
+
+        finishRun(180, compactAttemptsRef.current, compactAttemptsRef.current === 0 ? 'great' : 'okay');
         return;
       }
 
-      const nextAttempts = compactAttempts + 1;
+      const nextAttempts = compactAttemptsRef.current + 1;
+      compactAttemptsRef.current = nextAttempts;
       setCompactAttempts(nextAttempts);
       gaugeRef.current = 0;
       setGauge(0);
 
       if (nextAttempts >= 3) {
-        setFeedback('3回チャレンジできたね！回収できる強さになったよ。');
+        setFeedback('3回しっかり試せたね！ 安全そうちが手伝って、回収できる強さになったよ。');
         setFeedbackTone('good');
-        finishRun(175, nextAttempts, 'okay');
+        finishRun(125, nextAttempts, 'okay');
         return;
       }
 
+      const reason =
+        value < greenStart
+          ? 'すこし早くはなしたから、力がまだ足りなかったよ。'
+          : '長く押して、力が強くなりすぎたよ。';
       setFeedback(
-        nextAttempts === 1
-          ? 'おしい！みどりが少し広くなったよ。すぐにもういちど！'
-          : 'だいじょうぶ！みどりがもっと広くなったよ。あと1回チャレンジ！',
+        reason +
+          ' みどりの場所が広くなったから、' +
+          (nextAttempts === 1 ? 'もういちどねらおう！' : 'あと1回で安全そうちも手伝うよ！'),
       );
       setFeedbackTone('try');
     },
-    [compactAttempts, finishRun, greenEnd, greenStart, phase],
+    [changeScore, finishRun, greenEnd, greenStart, phase],
   );
 
   useEffect(() => {
@@ -230,11 +458,11 @@ export function WasteGame({ skillLevel, onComplete }: ArcadeGameProps) {
     const timer = window.setInterval(() => {
       setGauge((current) => {
         if (!holdingRef.current || completedRef.current) return current;
-        const next = Math.min(100, current + 1.6);
+        const next = Math.min(100, current + 1.7);
         gaugeRef.current = next;
         return next;
       });
-    }, 40);
+    }, 38);
 
     return () => window.clearInterval(timer);
   }, [isHolding, phase]);
@@ -251,7 +479,7 @@ export function WasteGame({ skillLevel, onComplete }: ArcadeGameProps) {
     setGauge(0);
     holdingRef.current = true;
     setIsHolding(true);
-    setFeedback('ギューッ……みどりをねらおう！');
+    setFeedback(compactRoundRef.current === 0 ? 'ギューッ！ みどりで手をはなそう！' : 'カチッとロック！ みどりをねらおう！');
     setFeedbackTone('info');
   }, [phase]);
 
@@ -291,12 +519,20 @@ export function WasteGame({ skillLevel, onComplete }: ArcadeGameProps) {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    setSelectedId(itemId);
-    setDragging({ id: itemId, startX: event.clientX, startY: event.clientY, dx: 0, dy: 0 });
+    chooseItem(itemId);
+    setDragging({ id: itemId, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, dx: 0, dy: 0 });
   };
 
   const handleItemPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (!dragging || dragging.id !== event.currentTarget.dataset.wasteItem) return;
+    if (
+      !dragging ||
+      dragging.id !== event.currentTarget.dataset.wasteItem ||
+      dragging.pointerId !== event.pointerId
+    ) return;
+    if (event.pointerType === 'mouse' && event.buttons === 0) {
+      setDragging(null);
+      return;
+    }
     event.preventDefault();
     setDragging((current) =>
       current
@@ -310,7 +546,7 @@ export function WasteGame({ skillLevel, onComplete }: ArcadeGameProps) {
   };
 
   const handleItemPointerUp = (event: ReactPointerEvent<HTMLButtonElement>, itemId: string) => {
-    if (!dragging || dragging.id !== itemId) return;
+    if (!dragging || dragging.id !== itemId || dragging.pointerId !== event.pointerId) return;
     event.preventDefault();
     const targetBin = binAtPoint(event.clientX, event.clientY);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -318,6 +554,10 @@ export function WasteGame({ skillLevel, onComplete }: ArcadeGameProps) {
     }
     setDragging(null);
     if (targetBin) sortIntoBin(itemId, targetBin);
+  };
+
+  const cancelItemDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    setDragging((current) => current?.pointerId === event.pointerId ? null : current);
   };
 
   const handleLeverKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
@@ -334,224 +574,448 @@ export function WasteGame({ skillLevel, onComplete }: ArcadeGameProps) {
     }
   };
 
-  const selectedItem = TRASH_ITEMS.find((item) => item.id === selectedId);
+  useEffect(() => {
+    if (phase === 'patrol' && currentLocation === 0 && sortedIds.length === 0) return;
+    let target: HTMLButtonElement | null = null;
+    if (phase === 'patrol') {
+      target = locationComplete ? nextLocationRef.current : firstWasteItemRef.current;
+    } else if (phase === 'compacting') {
+      target = compactorLeverRef.current;
+    }
+    if (!target) return;
+    const frame = window.requestAnimationFrame(() => target?.focus({ preventScroll: true }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [currentLocation, locationComplete, phase, sortedIds.length]);
+
   const gaugeMessage =
-    gauge < 30 ? 'まだまだ' : gauge < greenStart ? 'もうすこし' : gauge <= greenEnd ? 'いま！' : '押しすぎ注意';
+    gauge < 24 ? 'まだまだ' : gauge < greenStart ? 'もうすこし' : gauge <= greenEnd ? 'いま！' : '押しすぎ注意';
+  const townClassName = [
+    'waste-town',
+    'waste-location-' + location.id,
+    'waste-local-clean-' + localSortedCount,
+    locationComplete ? 'is-area-clear' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <section className="arcade-game waste-game" aria-labelledby="waste-game-title">
       <header className="arcade-game-header waste-game-header">
         <div>
-          <span className="arcade-job-chip waste-job-chip">しげん回収センター</span>
-          <h2 id="waste-game-title">町をぴかぴかにしよう！</h2>
+          <span className="arcade-job-chip waste-job-chip">まち美化センター</span>
+          <h2 id="waste-game-title">クリーン・タウン パトロール</h2>
         </div>
-        <div className="arcade-score-card waste-score-card" aria-label={`いまのスコア ${score}点`}>
-          <span>スコア</span>
-          <strong>{score}</strong>
+        <div className="waste-live-hud" aria-label={'スコア ' + score + '点、' + streak + 'コンボ'}>
+          <div className="arcade-score-card waste-score-card">
+            <span>スコア</span>
+            <strong>{score.toLocaleString()}</strong>
+            {lastPoints !== null && <em aria-hidden="true">+{lastPoints}</em>}
+          </div>
+          <div className={'waste-combo-card ' + (streak >= 2 ? 'is-hot' : '')}>
+            <span>れんぞく</span>
+            <strong>{streak}</strong>
+            <small>COMBO</small>
+          </div>
         </div>
       </header>
 
       <div className="arcade-step-row waste-step-row" aria-label="仕事の進みぐあい">
-        <span className={phase === 'sorting' ? 'is-current' : 'is-done'}>1 ごみを分ける</span>
+        <span className={phase === 'patrol' ? 'is-current' : 'is-done'}>1 町をパトロール</span>
         <span aria-hidden="true">→</span>
         <span className={phase === 'compacting' ? 'is-current' : phase === 'done' ? 'is-done' : ''}>
-          2 回収車でギュッ
+          2 回収車を動かす
         </span>
       </div>
 
-      {phase === 'sorting' && (
-        <div className="waste-sorting-stage">
+      {phase === 'patrol' && (
+        <div className="waste-patrol-stage">
+          <ol className="waste-route" aria-label="パトロールする3つの場所">
+            {LOCATIONS.map((place, index) => {
+              const state = index < currentLocation ? 'is-done' : index === currentLocation ? 'is-current' : 'is-next';
+              return (
+                <li key={place.id} className={state} aria-current={index === currentLocation ? 'step' : undefined}>
+                  <span aria-hidden="true">{index < currentLocation ? '✓' : place.icon}</span>
+                  <strong>{place.shortLabel}</strong>
+                </li>
+              );
+            })}
+          </ol>
+
           <div className="arcade-instruction waste-instruction">
-            <span aria-hidden="true">☝️</span>
+            <span aria-hidden="true">🔎</span>
             <p>
-              ごみをつかんで、同じなかまの箱へ！
-              <small>キーボードなら、ごみを選んでから箱を押してね。</small>
+              <strong>{location.label}</strong>：{location.mission}
+              <small>ごみを見つけて選ぶか、そのまま箱へドラッグしよう。</small>
             </p>
           </div>
 
           <div
-            className={`waste-town waste-clean-${Math.min(4, Math.floor(sortedIds.length / 2))}`}
-            aria-label={`町のようす。ごみを${sortedIds.length}こ回収、きれいさ${cleanPercent}パーセント`}
+            className={townClassName}
+            aria-label={
+              location.label +
+              'のようす。ごみを' +
+              localSortedCount +
+              'こ回収、町ぜんたいのきれいさ' +
+              cleanPercent +
+              'パーセント'
+            }
           >
-            <div className="waste-town-sky" aria-hidden="true">
-              <span className="waste-sun">☀️</span>
-              <span className="waste-cloud waste-cloud-one">☁️</span>
-              <span className="waste-cloud waste-cloud-two">☁️</span>
-            </div>
-            <div className="waste-town-buildings" aria-hidden="true">
-              <span>🏠</span>
-              <span>🏪</span>
-              <span>🏫</span>
-            </div>
-            <div className="waste-town-road" aria-hidden="true" />
-            {sortedIds.length >= 2 && <span className="waste-clean-reward waste-flower-one" aria-hidden="true">🌼</span>}
-            {sortedIds.length >= 4 && <span className="waste-clean-reward waste-flower-two" aria-hidden="true">🌷</span>}
-            {sortedIds.length >= 6 && <span className="waste-clean-reward waste-bird" aria-hidden="true">🐦</span>}
-            {sortedIds.length === TRASH_ITEMS.length && (
-              <span className="waste-clean-reward waste-rainbow" aria-hidden="true">🌈</span>
-            )}
+            <div className="waste-scene-art" aria-hidden="true">
+              <div className="waste-sky">
+                <span className="waste-sun">☀</span>
+                <span className="waste-cloud waste-cloud-one">☁</span>
+                <span className="waste-cloud waste-cloud-two">☁</span>
+              </div>
+              <div className="waste-haze"><i /><i /><i /></div>
 
-            {TRASH_ITEMS.filter((item) => !sortedRef.current.has(item.id)).map((item) => {
+              {location.id === 'park' && (
+                <div className="waste-park-art">
+                  <span className="waste-tree tree-one">🌳</span>
+                  <span className="waste-tree tree-two">🌳</span>
+                  <span className="waste-playground">🛝</span>
+                  <span className="waste-bench">🪑</span>
+                </div>
+              )}
+              {location.id === 'street' && (
+                <div className="waste-street-art">
+                  <div className="waste-shop shop-one"><i /><b>パン</b></div>
+                  <div className="waste-shop shop-two"><i /><b>やおや</b></div>
+                  <div className="waste-shop shop-three"><i /><b>ほん</b></div>
+                  <span className="waste-street-lamp">💡</span>
+                </div>
+              )}
+              {location.id === 'river' && (
+                <div className="waste-river-art">
+                  <div className="waste-river-water"><i /><i /><i /></div>
+                  <div className="waste-bridge"><i /><i /><i /></div>
+                  <span className="waste-reeds reeds-one">🌾</span>
+                  <span className="waste-reeds reeds-two">🌾</span>
+                </div>
+              )}
+
+              <div className="waste-ground" />
+              <div className="waste-walk-path" />
+              <div className="waste-worker">
+                <span>🧑‍🔧</span>
+                <i>•••</i>
+              </div>
+              {localSortedCount >= 1 && (
+                <span className="waste-returning-friend friend-one">{location.friend}</span>
+              )}
+              {localSortedCount >= 2 && (
+                <span className="waste-returning-friend friend-two">
+                  {location.id === 'park' ? '🐿️' : location.id === 'street' ? '🧑‍🍳' : '🐟'}
+                </span>
+              )}
+              {locationComplete && (
+                <span className="waste-returning-friend friend-celebrate">
+                  {location.id === 'park' ? '👧👦' : location.id === 'street' ? '👨‍👩‍👧' : '✨'}
+                </span>
+              )}
+            </div>
+
+            <div className="waste-area-sign">
+              <span aria-hidden="true">{location.icon}</span>
+              <strong>{location.label}</strong>
+              <small>あと {visibleItems.length}こ</small>
+            </div>
+
+            {visibleItems.map((item, index) => {
               const drag = dragging?.id === item.id ? dragging : null;
               const itemStyle: CSSProperties = {
-                left: `${item.x}%`,
-                top: `${item.y}%`,
+                left: item.x + '%',
+                top: item.y + '%',
                 transform: drag
-                  ? `translate3d(${drag.dx}px, ${drag.dy}px, 0) rotate(${item.tilt}deg) scale(1.12)`
-                  : `rotate(${item.tilt}deg)`,
-                zIndex: drag ? 20 : 3,
+                  ? 'translate(calc(-50% + ' +
+                    drag.dx +
+                    'px), calc(-50% + ' +
+                    drag.dy +
+                    'px)) rotate(' +
+                    item.tilt +
+                    'deg) scale(1.12)'
+                  : 'translate(-50%, -50%) rotate(' + item.tilt + 'deg)',
+                zIndex: drag ? 50 : 8,
                 touchAction: 'none',
               };
+              const isSpotted = spottedIds.includes(item.id);
               return (
                 <button
                   type="button"
                   key={item.id}
+                  ref={index === 0 ? firstWasteItemRef : undefined}
                   data-waste-item={item.id}
-                  className={`waste-trash-item ${selectedId === item.id ? 'is-selected' : ''} ${
-                    rejectedId === item.id ? 'is-rejected' : ''
-                  } ${drag ? 'is-dragging' : ''}`}
+                  className={[
+                    'waste-trash-item',
+                    selectedId === item.id ? 'is-selected' : '',
+                    rejectedId === item.id ? 'is-rejected' : '',
+                    drag ? 'is-dragging' : '',
+                    isSpotted ? 'is-spotted' : 'is-unspotted',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
                   style={itemStyle}
                   aria-pressed={selectedId === item.id}
-                  aria-label={`${item.label}。ドラッグするか、選んでから箱を押します`}
-                  onClick={() => {
-                    if (sortedRef.current.has(item.id)) {
-                      setSelectedId(null);
-                      return;
-                    }
-                    setSelectedId(item.id);
-                    setFeedback(`${item.label}をえらんだよ。どの箱かな？`);
-                    setFeedbackTone('info');
+                  aria-label={item.label + '。選ぶか、下の箱へドラッグします'}
+                  onClick={(event) => {
+                    if (event.detail === 0) chooseItem(item.id);
                   }}
                   onPointerDown={(event) => handleItemPointerDown(event, item.id)}
                   onPointerMove={handleItemPointerMove}
                   onPointerUp={(event) => handleItemPointerUp(event, item.id)}
-                  onPointerCancel={() => setDragging(null)}
+                  onPointerCancel={cancelItemDrag}
+                  onLostPointerCapture={cancelItemDrag}
                 >
+                  <span className="waste-find-ring" aria-hidden="true">＋</span>
                   <span className="waste-trash-emoji" aria-hidden="true">{item.emoji}</span>
                   <span className="waste-trash-label">{item.label}</span>
                 </button>
               );
             })}
+
+            {locationComplete && (
+              <div className="waste-clean-scene-message" role="status">
+                <span aria-hidden="true">✨</span>
+                <strong>エリア クリア！</strong>
+                <small>{location.clearMessage}</small>
+              </div>
+            )}
           </div>
 
-          <div className="waste-clean-meter" aria-label={`町のきれいさ ${cleanPercent}パーセント`}>
+          <div className="waste-clean-meter" aria-label={'町のきれいさ ' + cleanPercent + 'パーセント'}>
             <span>町のきれいさ</span>
-            <div className="waste-clean-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={cleanPercent}>
-              <span className="waste-clean-fill" style={{ width: `${cleanPercent}%` }} />
+            <div
+              className="waste-clean-track"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={cleanPercent}
+            >
+              <span className="waste-clean-fill" style={{ width: cleanPercent + '%' }} />
+              <i aria-hidden="true">🌱</i>
             </div>
             <strong>{sortedIds.length}/{TRASH_ITEMS.length}</strong>
           </div>
 
-          <div className="waste-bins" role="group" aria-label="ごみを入れる3つの箱">
-            {BINS.map((bin) => (
-              <button
-                type="button"
-                key={bin.kind}
-                data-waste-bin={bin.kind}
-                className={`waste-bin waste-bin-${bin.kind}`}
-                aria-label={`${bin.label}の箱。${bin.hint}`}
-                onClick={() => {
-                  if (selectedId) {
-                    sortIntoBin(selectedId, bin.kind);
-                  } else {
-                    setFeedback('さきに、町のごみをひとつ選ぼう！');
-                    setFeedbackTone('info');
-                  }
-                }}
-              >
-                <span className="waste-bin-lid" aria-hidden="true" />
-                <span className="waste-bin-emoji" aria-hidden="true">{bin.emoji}</span>
-                <strong>{bin.label}</strong>
-                <small>{bin.hint}</small>
-              </button>
-            ))}
+          <div className="waste-sort-console">
+            <section className="waste-toolbelt" aria-label="いま調べているごみ">
+              {selectedItem ? (
+                <>
+                  <div className="waste-selected-item">
+                    <span aria-hidden="true">{selectedItem.emoji}</span>
+                    <div>
+                      <small>ひろったもの</small>
+                      <strong>{selectedItem.label}</strong>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="waste-hint-button"
+                    aria-expanded={hintId === selectedItem.id}
+                    onClick={() => {
+                      setHintId((current) => (current === selectedItem.id ? null : selectedItem.id));
+                      setFeedbackTone('info');
+                    }}
+                  >
+                    <span aria-hidden="true">💡</span>
+                    {hintId === selectedItem.id ? 'ヒントをとじる' : 'まよったらヒント'}
+                  </button>
+                  {hintId === selectedItem.id && (
+                    <p className="waste-hint-text" role="status">{selectedItem.hint}</p>
+                  )}
+                </>
+              ) : (
+                <div className="waste-search-prompt">
+                  <span aria-hidden="true">👀</span>
+                  <strong>{locationComplete ? 'この場所はぴかぴか！' : '町の中をよく見よう'}</strong>
+                  <small>{locationComplete ? 'つぎの場所へ歩いていこう。' : 'ごみは道や草むらにかくれているよ。'}</small>
+                </div>
+              )}
+            </section>
+
+            <div className="waste-bins" role="group" aria-label="ごみを入れる3つの箱">
+              {BINS.map((bin) => (
+                <button
+                  type="button"
+                  key={bin.kind}
+                  data-waste-bin={bin.kind}
+                  className={'waste-bin waste-bin-' + bin.kind}
+                  aria-label={bin.label + 'の箱。' + bin.hint}
+                  onClick={() => {
+                    if (selectedId) {
+                      sortIntoBin(selectedId, bin.kind);
+                    } else {
+                      setFeedback('さきに、町のごみをひとつ見つけてひろおう！');
+                      setFeedbackTone('info');
+                    }
+                  }}
+                >
+                  <span className="waste-bin-lid" aria-hidden="true"><i /></span>
+                  <span className="waste-bin-emoji" aria-hidden="true">{bin.emoji}</span>
+                  <strong>{bin.label}</strong>
+                  <small>{bin.hint}</small>
+                </button>
+              ))}
+            </div>
           </div>
 
-          <p className="waste-selection-note">
-            {selectedItem ? `いま持っているもの：${selectedItem.emoji} ${selectedItem.label}` : 'ごみをひとつ選んでね'}
-          </p>
+          {locationComplete && (
+            <button ref={nextLocationRef} type="button" className="waste-next-location" onClick={advancePatrol}>
+              <span aria-hidden="true">{currentLocation < LOCATIONS.length - 1 ? '👟' : '🚛'}</span>
+              <span>
+                <small>{location.clearMessage}</small>
+                <strong>
+                  {currentLocation < LOCATIONS.length - 1
+                    ? 'つぎの「' + LOCATIONS[currentLocation + 1].label + '」へ歩く'
+                    : '回収車へごみを運ぶ'}
+                </strong>
+              </span>
+              <b aria-hidden="true">→</b>
+            </button>
+          )}
         </div>
       )}
 
       {(phase === 'compacting' || phase === 'done') && (
-        <div className={`waste-compactor-stage ${phase === 'done' ? 'is-complete' : ''}`}>
+        <div className={'waste-compactor-stage ' + (phase === 'done' ? 'is-complete' : '')}>
           <div className="arcade-instruction waste-instruction">
-            <span aria-hidden="true">✊</span>
+            <span aria-hidden="true">{compactRound === 0 ? '💪' : '🔒'}</span>
             <p>
-              レバーを長押しして、みどりで手をはなそう！
-              <small>マウス・指・スペースキー、どれでも長押しできるよ。</small>
+              <strong>{compactRound === 0 ? '工程1：ごみを小さくする' : '工程2：ふたをロックする'}</strong>
+              <small>赤いレバーを長押し。メーターがみどりに入ったら手をはなそう。</small>
             </p>
           </div>
 
+          <div className="waste-compact-rounds" aria-label={'回収車の工程、' + (compactRound + 1) + 'つ目'}>
+            <span className={compactRound >= 0 ? 'is-current' : ''}><i>1</i> ギュッと圧縮</span>
+            <b aria-hidden="true">→</b>
+            <span className={compactRound >= 1 ? 'is-current' : ''}><i>2</i> ふたをロック</span>
+          </div>
+
           <div className="waste-compactor-scene" aria-label="ごみ回収車の圧縮機">
-            <div className="waste-truck" aria-hidden="true">
-              <span className="waste-truck-load">♻️</span>
-              <span className="waste-truck-body">🚛</span>
-              {phase === 'done' && <span className="waste-truck-sparkles">✨✨</span>}
-            </div>
-
-            <div className="waste-gauge-wrap">
-              <div className="waste-gauge-labels" aria-hidden="true">
-                <span>まだ</span>
-                <strong>みどりで はなす！</strong>
-                <span>いっぱい</span>
-              </div>
-              <div
-                className="waste-gauge-track"
-                role="progressbar"
-                aria-label="圧縮メーター"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(gauge)}
-                aria-valuetext={`${gaugeMessage}、${Math.round(gauge)}パーセント`}
-              >
-                <span
-                  className="waste-gauge-green-zone"
-                  style={{ left: `${greenStart}%`, width: `${greenEnd - greenStart}%` }}
-                />
-                <span className="waste-gauge-fill" style={{ width: `${gauge}%` }} />
-                <span className="waste-gauge-needle" style={{ left: `${gauge}%` }} />
-              </div>
-              <strong className={`waste-gauge-message ${gauge >= greenStart && gauge <= greenEnd ? 'is-green' : ''}`}>
-                {phase === 'done' ? '回収できた！' : gaugeMessage}
-              </strong>
-            </div>
-
-            <button
-              type="button"
-              className={`waste-lever ${isHolding ? 'is-holding' : ''}`}
-              style={{ touchAction: 'none' }}
-              disabled={phase === 'done'}
-              aria-label="圧縮レバー。メーターがみどりになるまで長押しします"
-              onPointerDown={(event) => {
-                if (event.pointerType === 'mouse' && event.button !== 0) return;
-                event.preventDefault();
-                event.currentTarget.setPointerCapture(event.pointerId);
-                startHolding();
-              }}
-              onPointerUp={(event) => {
-                event.preventDefault();
-                stopHolding();
-                if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-                  event.currentTarget.releasePointerCapture(event.pointerId);
-                }
-              }}
-              onPointerCancel={cancelHolding}
-              onLostPointerCapture={cancelHolding}
-              onBlur={cancelHolding}
-              onKeyDown={handleLeverKeyDown}
-              onKeyUp={handleLeverKeyUp}
+            <div
+              className={[
+                'waste-truck',
+                'is-round-' + compactRound,
+                isHolding ? 'is-working' : '',
+                phase === 'done' ? 'is-departing' : '',
+              ].join(' ')}
+              aria-hidden="true"
             >
-              <span className="waste-lever-handle" aria-hidden="true">⬇️</span>
-              <strong>{isHolding ? 'ギューッ！' : '長押し！'}</strong>
-            </button>
+              <div className="waste-truck-bin">
+                <span className="waste-truck-load">♻</span>
+                <i className="waste-crush-plate" />
+                <b>つなぐクリーン</b>
+              </div>
+              <div className="waste-truck-cab">
+                <i className="waste-truck-window">☺</i>
+                <i className="waste-truck-light" />
+                <b>eco</b>
+              </div>
+              <i className="waste-wheel wheel-back" />
+              <i className="waste-wheel wheel-front" />
+              <span className="waste-truck-action">
+                {phase === 'done' ? 'しゅっぱつ！' : isHolding ? 'ガガガ…！' : compactRound === 0 ? '圧縮まち' : 'ロックまち'}
+              </span>
+              <span className="waste-truck-sparkles">{phase === 'done' ? '✨✨' : ''}</span>
+            </div>
+
+            <div className="waste-control-panel">
+              <div className="waste-control-title">
+                <span aria-hidden="true">⚙️</span>
+                <div>
+                  <small>安全コントロール</small>
+                  <strong>{compactRound === 0 ? 'あつりょくメーター' : 'ロックメーター'}</strong>
+                </div>
+                <em>{compactRound + 1}/2</em>
+              </div>
+
+              <div className="waste-gauge-wrap">
+                <div className="waste-gauge-labels" aria-hidden="true">
+                  <span>たりない</span>
+                  <strong>みどりで はなす！</strong>
+                  <span>つよすぎ</span>
+                </div>
+                <div
+                  className="waste-gauge-track"
+                  role="progressbar"
+                  aria-label={compactRound === 0 ? '圧縮メーター' : 'ロックメーター'}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(gauge)}
+                  aria-valuetext={gaugeMessage + '、' + Math.round(gauge) + 'パーセント'}
+                >
+                  <span
+                    className="waste-gauge-green-zone"
+                    style={{ left: greenStart + '%', width: greenEnd - greenStart + '%' }}
+                  >
+                    <i aria-hidden="true">ここ！</i>
+                  </span>
+                  <span className="waste-gauge-fill" style={{ width: gauge + '%' }} />
+                  <span className="waste-gauge-needle" style={{ left: gauge + '%' }} />
+                </div>
+                <strong className={'waste-gauge-message ' + (gauge >= greenStart && gauge <= greenEnd ? 'is-green' : '')}>
+                  {phase === 'done' ? '回収できた！' : gaugeMessage}
+                </strong>
+              </div>
+
+              <button
+                ref={compactorLeverRef}
+                type="button"
+                className={'waste-lever ' + (isHolding ? 'is-holding' : '')}
+                style={{ touchAction: 'none' }}
+                disabled={phase === 'done'}
+                aria-label="赤いレバー。みどりまで長押し。長押しがむずかしいときは、音声操作で1回押しても進めます"
+                onPointerDown={(event) => {
+                  if (event.pointerType === 'mouse' && event.button !== 0) return;
+                  event.preventDefault();
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  startHolding();
+                }}
+                onPointerUp={(event) => {
+                  event.preventDefault();
+                  stopHolding();
+                  if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                    event.currentTarget.releasePointerCapture(event.pointerId);
+                  }
+                }}
+                onPointerCancel={cancelHolding}
+                onLostPointerCapture={cancelHolding}
+                onBlur={cancelHolding}
+                onKeyDown={handleLeverKeyDown}
+                onKeyUp={handleLeverKeyUp}
+                onClick={(event) => {
+                  if (event.detail === 0) settleCompactor((greenStart + greenEnd) / 2);
+                }}
+              >
+                <span className="waste-lever-handle" aria-hidden="true"><i /></span>
+                <span>
+                  <small>{isHolding ? 'そのまま！' : '押してためる'}</small>
+                  <strong>{isHolding ? 'ギューッ！' : '長押しスタート'}</strong>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className="waste-lever-assist"
+                disabled={phase === 'done'}
+                onClick={() => settleCompactor((greenStart + greenEnd) / 2)}
+              >
+                <span aria-hidden="true">🛟</span>
+                長おしが むずかしいとき：安全そうちで 1回
+              </button>
+
+              <p className="waste-safety-note">
+                <span aria-hidden="true">🛟</span>
+                3回チャレンジすると安全そうちが手伝うから、かならず先へ進めるよ。
+              </p>
+            </div>
           </div>
 
           {phase === 'done' && (
             <div className="arcade-celebration waste-celebration" role="status">
               <span aria-hidden="true">🎉</span>
-              <strong>町がぴかぴか！</strong>
-              <span aria-hidden="true">🎉</span>
+              <strong>町じゅうがぴかぴか！</strong>
+              <span aria-hidden="true">🌈</span>
             </div>
           )}
         </div>
@@ -563,8 +1027,8 @@ export function WasteGame({ skillLevel, onComplete }: ArcadeGameProps) {
       </div>
 
       <footer className="arcade-game-footer waste-game-footer">
+        <span>見つけた：{spottedIds.length}/{TRASH_ITEMS.length}</span>
         <span>まちがい：{mistakes + (phase === 'compacting' ? compactAttempts : 0)}</span>
-        <span>れんぞくせいかい：{streak}</span>
         <span>しごとレベル：{level}</span>
       </footer>
     </section>
